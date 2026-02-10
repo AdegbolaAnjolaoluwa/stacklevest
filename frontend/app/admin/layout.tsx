@@ -1,3 +1,8 @@
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useWorkspace } from "@/features/workspace/context";
 import { AdminSidebar } from "@/components/admin/sidebar";
 
 export default function AdminLayout({
@@ -5,6 +10,22 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const { currentUser } = useWorkspace();
+  const router = useRouter();
+
+  useEffect(() => {
+    // Strict access control: Only 'admin' role allowed
+    // Currently only 'David' has this role
+    if (!currentUser || currentUser.role !== 'admin') {
+      router.push("/dashboard");
+    }
+  }, [currentUser, router]);
+
+  // Prevent rendering protected content for unauthorized users
+  if (!currentUser || currentUser.role !== 'admin') {
+    return null; 
+  }
+
   return (
     <div className="flex h-screen bg-slate-50 text-slate-900">
       <AdminSidebar />

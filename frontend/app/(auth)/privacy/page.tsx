@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Shield, Lock, Eye, FileText, Server } from "lucide-react";
+import { ArrowLeft, Lock, Eye, FileText, Server } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/logo";
 
 export default function PrivacyPolicyPage() {
   const router = useRouter();
@@ -14,8 +15,8 @@ export default function PrivacyPolicyPage() {
       <header className="border-b border-slate-100 sticky top-0 bg-white/80 backdrop-blur-sm z-50">
         <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 font-bold text-lg text-slate-900">
-            <Shield className="w-5 h-5 text-blue-600" />
-            <span>StackleVest Privacy</span>
+            <Logo width={120} height={40} />
+            <span className="ml-2 border-l pl-2 border-slate-200">Privacy</span>
           </div>
           <Button 
             variant="ghost" 

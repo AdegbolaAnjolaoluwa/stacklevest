@@ -5,6 +5,7 @@ export interface User {
   avatar?: string;
   status: "online" | "offline" | "busy";
   role?: "admin" | "manager" | "member";
+  needsOnboarding?: boolean;
 }
 
 export interface Channel {
@@ -64,4 +65,5 @@ export interface WorkspaceState {
   activeView: ViewType;
   activeChannelId?: string;
   activeDmId?: string;
+  typingUsers?: { [key: string]: string[] }; // channelId/dmId -> [userIds]
 }

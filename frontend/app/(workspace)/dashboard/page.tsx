@@ -54,10 +54,32 @@ export default function WorkspacePage() {
     users,
     updateTaskStatus,
     deleteTask,
-    updateTask
+    updateTask,
+    typingUsers,
+    startTyping,
+    stopTyping,
   } = useWorkspace();
   
   const [inputValue, setInputValue] = useState("");
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInputValue(e.target.value);
+    
+    // Emit start typing
+    startTyping();
+
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Set new timeout to stop typing after 2 seconds of inactivity
+    typingTimeoutRef.current = setTimeout(() => {
+        stopTyping();
+    }, 2000);
+  };
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
@@ -1021,11 +1043,27 @@ export default function WorkspacePage() {
                             <Button variant="ghost" size="icon" className="w-8 h-8 text-slate-500 hover:text-slate-700">
                                 <List className="w-4 h-4" />
                             </Button>
+                            {/* Typing Indicator */}
+                            {(typingUsers?.[activeChannelId || activeDmId || ""] || []).length > 0 && (
+                                <div className="ml-auto flex items-center gap-1.5 px-2">
+                                    <div className="flex space-x-0.5">
+                                        <div className="w-1 h-1 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                                        <div className="w-1 h-1 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                                        <div className="w-1 h-1 bg-slate-400 rounded-full animate-bounce"></div>
+                                    </div>
+                                    <span className="text-xs text-slate-400">
+                                        {(typingUsers?.[activeChannelId || activeDmId || ""] || [])
+                                            .map(id => users.find(u => u.id === id)?.name)
+                                            .filter(Boolean)
+                                            .join(", ") + " is typing..."}
+                                    </span>
+                                </div>
+                            )}
                         </div>
                         <div className="p-3">
                             <textarea
                                 value={inputValue}
-                                onChange={(e) => setInputValue(e.target.value)}
+                                onChange={handleInputChange}
                                 onKeyDown={handleKeyDown}
                                 placeholder={`Message ${activeView === 'channel' ? '#' + activeChannel?.name : activeDm?.user.name}...`}
                                 className="w-full resize-none border-0 focus:ring-0 p-0 min-h-[40px] max-h-[300px] text-slate-900 placeholder:text-slate-400 bg-transparent text-sm"

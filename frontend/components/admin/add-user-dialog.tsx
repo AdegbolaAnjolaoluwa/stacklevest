@@ -31,7 +31,7 @@ interface AddUserDialogProps {
 export function AddUserDialog({ open, onOpenChange, onUserAdd }: AddUserDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
 
@@ -45,14 +45,12 @@ export function AddUserDialog({ open, onOpenChange, onUserAdd }: AddUserDialogPr
       avatar: "",
     };
 
-    // Mock API call
-    setTimeout(() => {
-      setIsLoading(false);
-      if (onUserAdd) {
-        onUserAdd(newUser);
-      }
-      onOpenChange(false);
-    }, 1000);
+    if (onUserAdd) {
+      await onUserAdd(newUser);
+    }
+    
+    setIsLoading(false);
+    onOpenChange(false);
   };
 
   return (

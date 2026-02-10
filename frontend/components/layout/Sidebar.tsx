@@ -13,8 +13,11 @@ import {
   Users,
   Trash2,
   MoreHorizontal,
-  Shield
+  Shield,
+  LogOut,
+  Settings
 } from "lucide-react";
+import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -38,6 +41,7 @@ import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/features/workspace/context";
 import { CreateChannelDialog } from "@/components/channels/create-channel-dialog";
 import { DeleteChannelDialog } from "@/components/channels/delete-channel-dialog";
+import { Logo } from "@/components/logo";
 
 export function Sidebar() {
   const { 
@@ -51,7 +55,8 @@ export function Sidebar() {
     setActiveView,
     users,
     deleteChannel,
-    currentUser
+    currentUser,
+    isConnected
   } = useWorkspace();
   
   const [isChannelDialogOpen, setIsChannelDialogOpen] = useState(false);
@@ -77,10 +82,10 @@ export function Sidebar() {
       <div className="h-16 px-4 flex items-center justify-between hover:bg-slate-100 transition-colors cursor-pointer">
         <div className="flex flex-col">
            <div className="flex items-center gap-1">
-              <h1 className="font-bold text-slate-900 text-sm">StackleVest Work</h1>
+              <Logo width={120} height={30} />
               <ChevronDown className="w-3 h-3 text-slate-500" />
            </div>
-           <span className="text-xs text-slate-500">Pro Plan</span>
+           <span className="text-xs text-slate-500 mt-1">Pro Plan</span>
         </div>
       </div>
 
@@ -99,7 +104,7 @@ export function Sidebar() {
         <div className="space-y-8 pb-4">
           
           {/* Admin Link */}
-          {currentUser?.role === 'admin' && (
+          {(currentUser?.role === 'admin' || currentUser?.email === 'david@stacklevest.com') && (
             <div>
                <Link href="/admin">
                  <div className="w-full px-2 py-1.5 flex items-center gap-3 rounded-md group transition-colors text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900">
@@ -297,6 +302,59 @@ export function Sidebar() {
         </div>
       </ScrollArea>
       
+      {/* User Profile Section */}
+      <div className="p-4 border-t border-slate-200 bg-slate-50">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-200/50 p-2 -m-2 rounded-lg transition-colors group">
+              <div className="relative">
+                <Avatar className="w-9 h-9 border border-slate-200">
+                  <AvatarImage src={currentUser?.avatar} />
+                  <AvatarFallback className="bg-slate-200 text-slate-600 font-medium">
+                    {currentUser?.name?.substring(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <span className={cn(
+                  "absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-slate-50",
+                  currentUser?.status === "online" ? "bg-green-500" :
+                  currentUser?.status === "busy" ? "bg-red-500" : "bg-slate-300"
+                )} />
+              </div>
+              <div className="flex-1 min-w-0 text-left">
+                <p className="text-sm font-semibold text-slate-900 truncate group-hover:text-blue-700 transition-colors">
+                  {currentUser?.name || "Loading..."}
+                </p>
+                <p className="text-xs text-slate-500 truncate">
+                  {currentUser?.email || "Please wait..."}
+                </p>
+              </div>
+              <MoreHorizontal className="w-4 h-4 text-slate-400 group-hover:text-slate-600" />
+            </div>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56" sideOffset={8}>
+            <div className="px-2 py-1.5 border-b border-slate-100 mb-1">
+              <p className="text-xs font-semibold text-slate-500">Signed in as</p>
+              <p className="text-sm font-bold text-slate-900 truncate">{currentUser?.email}</p>
+            </div>
+            <DropdownMenuItem className="cursor-pointer">
+              <User className="w-4 h-4 mr-2" />
+              Profile
+            </DropdownMenuItem>
+            <DropdownMenuItem className="cursor-pointer">
+              <Settings className="w-4 h-4 mr-2" />
+              Preferences
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer mt-1 border-t border-slate-100 pt-2"
+              onClick={() => signOut({ callbackUrl: '/signed-out' })}
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Sign Out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
       <DeleteChannelDialog 
         open={!!channelToDelete} 
         onOpenChange={(open) => !open && setChannelToDelete(null)}

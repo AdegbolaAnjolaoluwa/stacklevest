@@ -2,19 +2,8 @@
 
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
-import { Check } from "lucide-react";
 
 export const AnimatedSplashCard = () => {
-  const [cycle, setCycle] = useState(0);
-
-  // Auto-cycle the animation
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCycle(prev => prev + 1);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, []);
-
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-center overflow-hidden">
       {/* Background Elements - Subtle/Transparent */}
@@ -44,67 +33,92 @@ export const AnimatedSplashCard = () => {
         transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
       />
 
-      {/* Center Stacking Animation - Scaled Up 3x */}
-      <div className="relative z-10 flex flex-col items-center justify-center mb-12">
-        <div className="relative w-64 h-64 flex items-center justify-center">
-          {/* Bottom Block */}
-          <motion.div
-            className="absolute w-48 h-24 bg-blue-600 rounded-2xl shadow-xl shadow-blue-600/20"
-            style={{ zIndex: 1 }}
-            animate={{
-              y: [60, 48, 48, 60], 
-              opacity: [0, 1, 1, 0],
-              scale: [0.9, 1, 1, 0.9]
-            }}
-            transition={{
-              duration: 4,
-              times: [0.1, 0.2, 0.8, 0.9],
-              repeat: Infinity,
-              ease: "easeOut"
-            }}
-          />
+      {/* Main Graphic - Shield Animation */}
+      <div className="relative z-10 flex flex-col items-center justify-center mb-16 scale-90 md:scale-100">
+        <motion.div
+          animate={{ y: [0, -15, 0] }}
+          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+          className="relative"
+        >
+          {/* Shield Container */}
+          <div className="relative w-64 h-72 border-[10px] border-[#111827] bg-white rounded-[40px] rounded-b-[60px] flex items-end justify-center pb-12 gap-4 px-8 shadow-2xl">
+            
+            {/* Navy Bar - Left */}
+            <motion.div 
+              className="w-12 bg-[#111827] rounded-t-full shadow-lg"
+              initial={{ height: "6rem" }}
+              animate={{ 
+                height: ["6rem", "7.5rem", "6rem"],
+                filter: ["brightness(1)", "brightness(1.2)", "brightness(1)"]
+              }}
+              transition={{ 
+                duration: 4, 
+                repeat: Infinity, 
+                ease: "easeInOut",
+                delay: 0
+              }}
+            />
 
-          {/* Middle Block */}
-          <motion.div
-            className="absolute w-48 h-24 bg-blue-500 rounded-2xl shadow-lg shadow-blue-500/20"
-            style={{ zIndex: 2 }}
-            animate={{
-              y: [30, 0, 0, 30],
-              opacity: [0, 1, 1, 0],
-              scale: [0.9, 1, 1, 0.9]
-            }}
-            transition={{
-              duration: 4,
-              times: [0.3, 0.4, 0.8, 0.9],
-              repeat: Infinity,
-              ease: "easeOut"
-            }}
-          />
+            {/* Blue Bar - Center */}
+            <motion.div 
+              className="w-12 bg-[#3b82f6] rounded-t-full shadow-lg shadow-blue-500/20"
+              initial={{ height: "10rem" }}
+              animate={{ 
+                height: ["10rem", "11.5rem", "10rem"],
+                filter: ["brightness(1)", "brightness(1.1)", "brightness(1)"]
+              }}
+              transition={{ 
+                duration: 4, 
+                repeat: Infinity, 
+                ease: "easeInOut",
+                delay: 1.3 // Staggered
+              }}
+            />
 
-          {/* Top Block */}
-          <motion.div
-            className="absolute w-48 h-24 bg-slate-900 rounded-2xl shadow-2xl flex items-center justify-center"
-            style={{ zIndex: 3 }}
-            animate={{
-              y: [0, -48, -48, 0],
-              opacity: [0, 1, 1, 0],
-              scale: [0.9, 1, 1, 0.9]
-            }}
-            transition={{
-              duration: 4,
-              times: [0.5, 0.6, 0.8, 0.9],
-              repeat: Infinity,
-              ease: "easeOut"
-            }}
-          >
-             <motion.div
-                animate={{ scale: [0, 1, 1, 0], opacity: [0, 1, 1, 0] }}
-                transition={{ duration: 4, times: [0.6, 0.7, 0.8, 0.9], repeat: Infinity }}
-             >
-                <Check className="w-10 h-10 text-white" strokeWidth={4} />
-             </motion.div>
-          </motion.div>
-        </div>
+            {/* Purple Bar - Right */}
+            <div className="relative w-12 h-56 flex items-end justify-center">
+              <motion.div 
+                className="w-12 bg-[#8b5cf6] rounded-t-full shadow-lg shadow-purple-500/20"
+                initial={{ height: "13rem" }}
+                animate={{ 
+                  height: ["13rem", "14.5rem", "13rem"],
+                  filter: ["brightness(1)", "brightness(1.1)", "brightness(1)"]
+                }}
+                transition={{ 
+                  duration: 4, 
+                  repeat: Infinity, 
+                  ease: "easeInOut",
+                  delay: 2.6 // More staggered
+                }}
+              />
+              
+              {/* Coin - Floats above purple bar */}
+              <motion.div 
+                className="absolute -top-6 left-1/2 -translate-x-1/2 z-20"
+                animate={{ 
+                  y: [0, -8, 0],
+                  rotateY: [0, 360]
+                }}
+                transition={{
+                  y: { duration: 2, repeat: Infinity, ease: "easeInOut" },
+                  rotateY: { duration: 5, repeat: Infinity, ease: "linear", repeatDelay: 1 }
+                }}
+              >
+                <motion.div 
+                  className="w-14 h-14 bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-600 rounded-full flex items-center justify-center shadow-xl border-2 border-white/20"
+                  animate={{ 
+                    filter: ["brightness(1)", "brightness(1.3) drop-shadow(0 0 15px rgba(250, 204, 21, 0.8))", "brightness(1)"] 
+                  }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  <span className="text-white font-bold text-2xl select-none drop-shadow-md">$</span>
+                  <div className="absolute inset-1 border border-white/40 rounded-full"></div>
+                </motion.div>
+              </motion.div>
+            </div>
+
+          </div>
+        </motion.div>
       </div>
 
       {/* Content */}

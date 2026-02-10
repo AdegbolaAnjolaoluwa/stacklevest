@@ -1,0 +1,18 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Shield Background -->
+  <path d="M256 48C256 48 80 80 80 176V272C80 400 256 480 256 480C256 480 432 400 432 272V176C432 80 256 48 256 48Z" fill="white" stroke="#0F172A" stroke-width="24" stroke-linejoin="round"/>
+  
+  <!-- Bars -->
+  <!-- Left Bar (Dark) -->
+  <rect x="156" y="240" width="48" height="80" rx="24" fill="#1E293B"/>
+  
+  <!-- Middle Bar (Blue) -->
+  <rect x="232" y="200" width="48" height="120" rx="24" fill="#3B82F6"/>
+  
+  <!-- Right Bar (Purple) -->
+  <rect x="308" y="160" width="48" height="160" rx="24" fill="#8B5CF6"/>
+  
+  <!-- Coin -->
+  <circle cx="332" cy="140" r="24" fill="#FBBF24" stroke="#F59E0B" stroke-width="4"/>
+  <path d="M332 130V150M328 134H334C336.209 134 338 135.791 338 138C338 140.209 336.209 142 334 142H330C327.791 142 326 143.791 326 146C326 148.209 327.791 150 330 150H336" stroke="#FFF" stroke-width="3" stroke-linecap="round"/>
+</svg>

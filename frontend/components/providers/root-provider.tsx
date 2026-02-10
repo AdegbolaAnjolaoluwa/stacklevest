@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { SessionProvider } from "next-auth/react";
 import { SplashScreen } from "@/components/ui/splash-screen";
 import { OfflineScreen } from "@/components/offline-screen";
+import { WorkspaceProvider } from "@/features/workspace/context";
 
 export function RootProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
@@ -29,10 +31,12 @@ export function RootProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <>
-      {isLoading && <SplashScreen onComplete={handleComplete} />}
-      {isOffline && !isLoading && <OfflineScreen />}
-      {children}
-    </>
+    <SessionProvider>
+      <WorkspaceProvider>
+        {isLoading && <SplashScreen onComplete={handleComplete} />}
+        {isOffline && !isLoading && <OfflineScreen />}
+        {children}
+      </WorkspaceProvider>
+    </SessionProvider>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { UserPlus, Search, MoreVertical, Filter, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,28 +23,107 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AddUserDialog } from "../../../components/admin/add-user-dialog";
-
-// Mock Data
-const initialUsers = [
-  { id: 1, name: "Alex Rivera", email: "alex@stacklevest.com", role: "ADMIN", status: "ACTIVE", avatar: "" },
-  { id: 2, name: "Sam Chen", email: "sam@stacklevest.com", role: "MANAGER", status: "ACTIVE", avatar: "" },
-  { id: 3, name: "Jordan Smith", email: "jordan@stacklevest.com", role: "MEMBER", status: "INACTIVE", avatar: "" },
-  { id: 4, name: "Taylor Koxxi", email: "taylor@stacklevest.com", role: "MEMBER", status: "ACTIVE", avatar: "" },
-  { id: 5, name: "Morgan Lee", email: "morgan@stacklevest.com", role: "MANAGER", status: "PENDING", avatar: "" },
-];
+import { EditUserDialog } from "../../../components/admin/edit-user-dialog";
+import { DeleteUserDialog } from "../../../components/admin/delete-user-dialog";
 
 export default function UserManagementPage() {
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
-  const [users, setUsers] = useState(initialUsers);
+  const [isEditUserOpen, setIsEditUserOpen] = useState(false);
+  const [isDeleteUserOpen, setIsDeleteUserOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [users, setUsers] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch users on mount
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const getApiUrl = () => {
+    if (typeof window !== 'undefined') {
+      return `http://${window.location.hostname}:8080`;
+    }
+    return 'http://localhost:8080';
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch(`${getApiUrl()}/api/users`);
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const filteredUsers = users.filter(user => 
     user.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
     user.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleAddUser = (newUser: any) => {
-    setUsers([...users, { ...newUser, id: users.length + 1 }]);
+  const handleAddUser = async (newUser: any) => {
+    try {
+      const res = await fetch(`${getApiUrl()}/api/users`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newUser)
+      });
+      
+      if (res.ok) {
+        const createdUser = await res.json();
+        setUsers([...users, createdUser]);
+      }
+    } catch (error) {
+      console.error("Failed to create user:", error);
+    }
+  };
+
+  const handleEditUser = (user: any) => {
+    setSelectedUser(user);
+    setIsEditUserOpen(true);
+  };
+
+  const handleUpdateUser = async (updatedUser: any) => {
+    try {
+      const res = await fetch(`${getApiUrl()}/api/users/${updatedUser.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedUser)
+      });
+
+      if (res.ok) {
+        const savedUser = await res.json();
+        setUsers(users.map(u => u.id === savedUser.id ? savedUser : u));
+      }
+    } catch (error) {
+      console.error("Failed to update user:", error);
+    }
+  };
+
+  const handleDeleteUserClick = (user: any) => {
+    setSelectedUser(user);
+    setIsDeleteUserOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (selectedUser) {
+      try {
+        const res = await fetch(`http://localhost:8080/api/users/${selectedUser.id}`, {
+          method: "DELETE"
+        });
+
+        if (res.ok) {
+          setUsers(users.filter(u => u.id !== selectedUser.id));
+        }
+      } catch (error) {
+        console.error("Failed to delete user:", error);
+      }
+    }
   };
 
   return (
@@ -113,7 +192,7 @@ export default function UserManagementPage() {
                     <Avatar className="w-8 h-8">
                       <AvatarImage src={user.avatar} />
                       <AvatarFallback className="bg-blue-100 text-blue-700 text-xs">
-                        {user.name.split(" ").map(n => n[0]).join("")}
+                        {user.name.split(" ").map((n: string) => n[0]).join("")}
                       </AvatarFallback>
                     </Avatar>
                     <span className="text-slate-900">{user.name}</span>
@@ -158,10 +237,9 @@ export default function UserManagementPage() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem>Edit Details</DropdownMenuItem>
-                      <DropdownMenuItem>Change Role</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleEditUser(user)}>Edit Details</DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-red-600">Remove User</DropdownMenuItem>
+                      <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteUserClick(user)}>Remove User</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
@@ -183,6 +261,18 @@ export default function UserManagementPage() {
       </div>
 
       <AddUserDialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen} onUserAdd={handleAddUser} />
+      <EditUserDialog 
+        open={isEditUserOpen} 
+        onOpenChange={setIsEditUserOpen} 
+        user={selectedUser} 
+        onSave={handleUpdateUser} 
+      />
+      <DeleteUserDialog 
+        open={isDeleteUserOpen} 
+        onOpenChange={setIsDeleteUserOpen} 
+        onConfirm={handleConfirmDelete} 
+        userName={selectedUser?.name}
+      />
     </div>
   );
 }
