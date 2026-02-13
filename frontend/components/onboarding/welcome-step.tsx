@@ -1,11 +1,15 @@
 import { Shield, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useSession } from "next-auth/react";
 
 interface WelcomeStepProps {
   onNext: () => void;
 }
 
 export function WelcomeStep({ onNext }: WelcomeStepProps) {
+  const { data: session } = useSession();
+  const firstName = session?.user?.name?.split(" ")[0] || "there";
+
   return (
     <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
       <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full text-sm font-semibold mb-8">
@@ -13,9 +17,9 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
         Generic Internal Workspace
       </div>
 
-      <h1 className="text-5xl md:text-6xl font-bold text-slate-900 mb-6 tracking-tight">
+      <h1 className="text-5xl md:text-6xl font-bold text-slate-900 mb-6 tracking-tight font-fredoka">
         Welcome to the Team,<br />
-        <span className="text-blue-600">Jordan</span>
+        <span className="text-blue-600 capitalize font-fredoka">{firstName}</span>
       </h1>
 
       <p className="text-xl text-slate-600 max-w-2xl mb-12 leading-relaxed">

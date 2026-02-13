@@ -7,7 +7,7 @@ export default function LandingPage() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 p-4">
       <div className="text-center space-y-4 flex flex-col items-center">
         <Logo width={300} height={100} />
-        <p className="mt-4 text-lg text-slate-600">
+        <p className="mt-4 text-xl text-slate-600 font-fredoka">
           The communication platform for high-performance teams.
         </p>
         <div className="mt-8 flex gap-4 justify-center">

@@ -9,7 +9,8 @@ import {
   Shield, 
   ArrowLeft,
   ChevronDown,
-  CheckSquare
+  CheckSquare,
+  History
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,11 @@ export function AdminSidebar() {
       title: "Task Management",
       href: "/admin/tasks",
       icon: CheckSquare
+    },
+    {
+      title: "Task Archive",
+      href: "/admin/archive",
+      icon: History
     },
     {
       title: "Integrations",

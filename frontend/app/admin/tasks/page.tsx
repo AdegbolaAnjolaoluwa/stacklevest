@@ -15,24 +15,81 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useWorkspace } from "@/features/workspace/context";
+import { Task } from "@/types";
+import { filterTasks } from "@/lib/tasks";
+import { TaskDetailModal } from "@/components/tasks/task-detail-modal";
+import { CreateTaskDialog } from "@/components/tasks/create-task-dialog";
+import { DeleteTaskDialog } from "@/components/tasks/delete-task-dialog";
 
 export default function AdminTasksPage() {
-  const { tasks, users } = useWorkspace();
+  const { 
+    tasks, 
+    users, 
+    currentUser, 
+    updateTask, 
+    deleteTask, 
+    updateTaskStatus,
+    addTaskComment,
+    selectedTaskId,
+    setSelectedTaskId
+  } = useWorkspace();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [isTaskDetailOpen, setIsTaskDetailOpen] = useState(false);
+  const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [taskToDeleteId, setTaskToDeleteId] = useState<string | null>(null);
+
+  const selectedTask = tasks.find(t => t.id === (selectedTaskId || "")) || null;
+
+  const handleTaskClick = (task: Task) => {
+    setSelectedTaskId(task.id);
+    setIsTaskDetailOpen(true);
+  };
+
+  const handleExportCSV = () => {
+    const headers = ["Title", "Status", "Priority", "Progress", "Assignees", "Created At"];
+    const rows = tasks.map(task => {
+      const taskAssignees = task.assigneeIds
+        .map(id => users.find(u => u.id === id)?.name)
+        .filter(Boolean)
+        .join("; ");
+      
+      return [
+        task.title,
+        task.status,
+        task.priority,
+        `${task.progress}%`,
+        `"${taskAssignees}"`,
+        task.createdAt
+      ];
+    });
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row => row.join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `tasks-export-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   // Helper to get user details
   const getUser = (userId: string) => users.find(u => u.id === userId);
 
-  const filteredTasks = tasks.filter(task => {
-    const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          (task.description && task.description.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesStatus = statusFilter === "all" || task.status === statusFilter;
-    const matchesPriority = priorityFilter === "all" || task.priority === priorityFilter;
-    
-    return matchesSearch && matchesStatus && matchesPriority;
-  });
+  const filteredTasks = filterTasks(tasks, {
+    searchQuery,
+    status: statusFilter,
+    priority: priorityFilter
+  }, users);
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -70,7 +127,11 @@ export default function AdminTasksPage() {
           <p className="text-slate-500 mt-1">Monitor and track project tasks across the workspace.</p>
         </div>
         <div className="flex items-center gap-2">
-           <Button variant="outline" className="gap-2 text-slate-600 border-slate-200">
+           <Button 
+             variant="outline" 
+             className="gap-2 text-slate-600 border-slate-200"
+             onClick={handleExportCSV}
+           >
              <Download className="w-4 h-4" />
              Export CSV
            </Button>
@@ -143,13 +204,15 @@ export default function AdminTasksPage() {
               </TableRow>
             ) : (
               filteredTasks.map((task) => (
-                <TableRow key={task.id} className="hover:bg-slate-50">
-                  <TableCell>
-                    <div className="flex flex-col">
-                      <span className="font-medium text-slate-900">{task.title}</span>
-                      {task.description && (
-                        <span className="text-xs text-slate-500 truncate max-w-[300px] mt-0.5">{task.description}</span>
-                      )}
+                <TableRow 
+                  key={task.id} 
+                  className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
+                  onClick={() => handleTaskClick(task)}
+                >
+                  <TableCell className="py-4">
+                    <div className="flex flex-col gap-1">
+                      <span className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">{task.title}</span>
+                      <span className="text-xs text-slate-500 line-clamp-1">{task.description || "No description"}</span>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -201,6 +264,40 @@ export default function AdminTasksPage() {
           </TableBody>
         </Table>
       </div>
+
+      <TaskDetailModal 
+        task={selectedTask}
+        isOpen={isTaskDetailOpen}
+        onClose={() => setIsTaskDetailOpen(false)}
+        users={users}
+        currentUser={currentUser}
+        onUpdateTask={(task) => {
+          updateTask(task);
+          setIsTaskDetailOpen(false);
+        }}
+        onDeleteTask={(id) => {
+          setTaskToDeleteId(id);
+          setIsDeleteDialogOpen(true);
+          setIsTaskDetailOpen(false);
+        }}
+        onAddComment={addTaskComment}
+      />
+
+      <CreateTaskDialog 
+        open={isCreateTaskOpen} 
+        onOpenChange={setIsCreateTaskOpen}
+      />
+
+      <DeleteTaskDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        onConfirm={() => {
+          if (taskToDeleteId) {
+            deleteTask(taskToDeleteId);
+            setTaskToDeleteId(null);
+          }
+        }}
+      />
     </div>
   );
 }

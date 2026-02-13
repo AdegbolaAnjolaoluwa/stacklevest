@@ -1,4 +1,5 @@
 import { Sidebar } from "@/components/layout/Sidebar";
+import { NotificationCenter } from "@/components/layout/NotificationCenter";
 
 export default function WorkspaceLayout({
   children,
@@ -14,6 +15,8 @@ export default function WorkspaceLayout({
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {children}
       </div>
+      
+      <NotificationCenter />
     </div>
   );
 }

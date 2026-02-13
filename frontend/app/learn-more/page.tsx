@@ -46,8 +46,8 @@ export default function LearnMorePage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
               >
-                <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight text-slate-900 mb-6">
-                  Where work <span className="text-blue-600">flows</span> naturally.
+                <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight text-slate-900 mb-6 font-fredoka">
+                  Where work <span className="text-blue-600 font-fredoka">flows</span> naturally.
                 </h1>
                 <p className="text-xl text-slate-600 mb-8 leading-relaxed">
                   StackleVest brings your team's communication, tasks, and tools together in one place. 
@@ -75,7 +75,7 @@ export default function LearnMorePage() {
         <section className="py-24 bg-slate-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-2xl mx-auto mb-16">
-              <h2 className="text-3xl font-bold text-slate-900 mb-4">Everything you need to sync</h2>
+              <h2 className="text-3xl font-bold text-slate-900 mb-4 font-fredoka">Everything you need to sync</h2>
               <p className="text-slate-600">Powerful features designed for modern teams who want to move fast and stay aligned.</p>
             </div>
 
@@ -88,7 +88,7 @@ export default function LearnMorePage() {
                       <Hash className="w-6 h-6 text-blue-600" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold text-slate-900 mb-2">Organized Channels</h3>
+                      <h3 className="text-xl font-bold text-slate-900 mb-2 font-fredoka">Organized Channels</h3>
                       <p className="text-slate-600 leading-relaxed">
                         Keep conversations focused by topic, project, or team. Public channels for transparency, private ones for sensitive discussions.
                       </p>
@@ -99,7 +99,7 @@ export default function LearnMorePage() {
                       <MessageSquare className="w-6 h-6 text-purple-600" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold text-slate-900 mb-2">Direct Messages</h3>
+                      <h3 className="text-xl font-bold text-slate-900 mb-2 font-fredoka">Direct Messages</h3>
                       <p className="text-slate-600 leading-relaxed">
                         Secure 1:1 conversations for quick syncs. Share files, code snippets, and ideas instantly.
                       </p>
@@ -191,7 +191,7 @@ export default function LearnMorePage() {
                       <CheckSquare className="w-6 h-6 text-green-600" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold text-slate-900 mb-2">Integrated Task Board</h3>
+                      <h3 className="text-xl font-bold text-slate-900 mb-2 font-fredoka">Integrated Task Board</h3>
                       <p className="text-slate-600 leading-relaxed">
                         Don't let ideas get lost in chat. Turn messages into tasks and manage them on a built-in Kanban board without leaving the app.
                       </p>
@@ -202,7 +202,7 @@ export default function LearnMorePage() {
                       <Zap className="w-6 h-6 text-yellow-600" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold text-slate-900 mb-2">Real-time Sync</h3>
+                      <h3 className="text-xl font-bold text-slate-900 mb-2 font-fredoka">Real-time Sync</h3>
                       <p className="text-slate-600 leading-relaxed">
                         Everything updates instantly across all your devices. See typing indicators, online status, and task movements in real-time.
                       </p>
@@ -219,9 +219,9 @@ export default function LearnMorePage() {
                       <Shield className="w-6 h-6 text-red-600" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold text-slate-900 mb-2">Admin Controls</h3>
+                      <h3 className="text-xl font-bold text-slate-900 mb-2 font-fredoka">Admin Controls</h3>
                       <p className="text-slate-600 leading-relaxed">
-                        Manage your workspace with confidence. Control user roles, invite members, and oversee channel access from a dedicated admin console.
+                        Manage your workspace with confidence. Control user roles, invite staff, and oversee channel access from a dedicated admin console.
                       </p>
                     </div>
                   </div>
@@ -230,7 +230,7 @@ export default function LearnMorePage() {
                       <LayoutDashboard className="w-6 h-6 text-indigo-600" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold text-slate-900 mb-2">Unified Dashboard</h3>
+                      <h3 className="text-xl font-bold text-slate-900 mb-2 font-fredoka">Unified Dashboard</h3>
                       <p className="text-slate-600 leading-relaxed">
                         Get a bird's eye view of your organization. Monitor activity, track project progress, and manage your team from one central hub.
                       </p>
@@ -240,7 +240,7 @@ export default function LearnMorePage() {
                 <div className="order-1 md:order-2 bg-white p-8 rounded-2xl shadow-xl border border-slate-100 overflow-hidden relative">
                   <div className="space-y-4 relative z-10">
                      <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-                        <h4 className="font-bold text-slate-900">Team Members</h4>
+                        <h4 className="font-bold text-slate-900 font-fredoka">Team Members</h4>
                         <div className="bg-blue-600 text-white text-xs px-3 py-1.5 rounded-md font-medium">Add Member</div>
                      </div>
                      <div className="space-y-3">
@@ -290,7 +290,7 @@ export default function LearnMorePage() {
         {/* CTA Section */}
         <section className="py-24 bg-slate-900 text-white">
           <div className="max-w-4xl mx-auto px-4 text-center">
-            <h2 className="text-4xl font-bold mb-6">Ready to get started?</h2>
+            <h2 className="text-4xl font-bold mb-6 font-fredoka">Ready to get started?</h2>
             <p className="text-slate-300 text-lg mb-8">
               Join thousands of teams using StackleVest to communicate better.
             </p>

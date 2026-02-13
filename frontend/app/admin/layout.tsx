@@ -15,14 +15,19 @@ export default function AdminLayout({
 
   useEffect(() => {
     // Strict access control: Only 'admin' role allowed
-    // Currently only 'David' has this role
-    if (!currentUser || currentUser.role !== 'admin') {
+    const isDavid = currentUser?.email === 'david@stacklevest.com' || currentUser?.email === 'abutankokingdavid@stacklevest.com';
+    const isAdmin = currentUser?.role?.toLowerCase() === 'admin' || isDavid;
+
+    if (!currentUser || !isAdmin) {
       router.push("/dashboard");
     }
   }, [currentUser, router]);
 
   // Prevent rendering protected content for unauthorized users
-  if (!currentUser || currentUser.role !== 'admin') {
+  const isDavid = currentUser?.email === 'david@stacklevest.com' || currentUser?.email === 'abutankokingdavid@stacklevest.com';
+  const isAdmin = currentUser?.role?.toLowerCase() === 'admin' || isDavid;
+
+  if (!currentUser || !isAdmin) {
     return null; 
   }
 

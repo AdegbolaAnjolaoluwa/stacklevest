@@ -89,9 +89,9 @@ export class SocketClient {
 
 const getSocketUrl = () => {
   if (typeof window !== 'undefined') {
-    return `http://${window.location.hostname}:8080`;
+    return `http://${window.location.hostname}:8082`;
   }
-  return 'http://localhost:8080';
+  return 'http://localhost:8082';
 };
 
 export const socket = new SocketClient(getSocketUrl());

@@ -3,6 +3,7 @@
 import { Users, CheckSquare, Activity, UserPlus, Shield, Hash, CheckCircle2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useWorkspace } from "@/features/workspace/context";
 
 export default function AdminOverviewPage() {
@@ -13,12 +14,19 @@ export default function AdminOverviewPage() {
   const completedTasksCount = tasks.filter(t => t.status === 'done').length;
 
   // Derive recent activity from actual data
-  // Since we don't have explicit 'createdAt' timestamps on everything, we'll take the last items
+  const completedTasks = tasks
+    .filter(t => t.status === 'done')
+    .sort((a, b) => {
+      const dateA = a.completedAt ? new Date(a.completedAt).getTime() : 0;
+      const dateB = b.completedAt ? new Date(b.completedAt).getTime() : 0;
+      return dateB - dateA;
+    });
+
   const lastUser = users[users.length - 1];
   const lastChannel = channels[channels.length - 1];
-  const lastTask = tasks[tasks.length - 1];
 
   const activities = [
+    // Welcome activity
     lastUser && {
       user: "System",
       action: "welcomed",
@@ -30,6 +38,7 @@ export default function AdminOverviewPage() {
       iconBg: "bg-blue-100",
       iconColor: "text-blue-600"
     },
+    // Channel activity
     lastChannel && {
       user: "Admin",
       action: "created channel",
@@ -41,17 +50,21 @@ export default function AdminOverviewPage() {
       iconBg: "bg-purple-100",
       iconColor: "text-purple-600"
     },
-    lastTask && {
-      user: "Task System",
-      action: "tracked new task:",
-      target: lastTask.title.substring(0, 20) + (lastTask.title.length > 20 ? "..." : ""),
-      context: `in ${lastTask.status}`,
-      time: "Recently",
-      type: "Task",
-      icon: CheckCircle2,
-      iconBg: "bg-green-100",
-      iconColor: "text-green-600"
-    }
+    // Completed tasks activities
+    ...completedTasks.map(task => {
+      const assignee = users.find(u => task.assigneeIds.includes(u.id))?.name || "Someone";
+      return {
+        user: assignee,
+        action: "completed task:",
+        target: task.title.substring(0, 30) + (task.title.length > 30 ? "..." : ""),
+        context: "successfully",
+        time: task.completedAt ? new Date(task.completedAt).toLocaleString() : "Recently",
+        type: "Task",
+        icon: CheckCircle2,
+        iconBg: "bg-green-100",
+        iconColor: "text-green-600"
+      };
+    })
   ].filter(Boolean);
 
   return (
@@ -107,28 +120,30 @@ export default function AdminOverviewPage() {
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
           <h3 className="font-semibold text-slate-900">Recent Workspace Activity</h3>
         </div>
-        <div className="divide-y divide-slate-100">
-          {activities.length > 0 ? activities.map((item: any, i) => (
-            <div key={i} className="px-6 py-4 flex items-start gap-4 hover:bg-slate-50 transition-colors">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${item.iconBg}`}>
-                <item.icon className={`w-4 h-4 ${item.iconColor}`} />
+        <ScrollArea className="h-[400px]">
+          <div className="divide-y divide-slate-100">
+            {activities.length > 0 ? activities.map((item: any, i) => (
+              <div key={i} className="px-6 py-4 flex items-start gap-4 hover:bg-slate-50 transition-colors">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${item.iconBg}`}>
+                  <item.icon className={`w-4 h-4 ${item.iconColor}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-slate-900">
+                    <span className="font-semibold">{item.user}</span> {item.action} <span className="font-semibold">{item.target}</span> {item.context}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">{item.time}</p>
+                </div>
+                <Badge variant="outline" className="text-xs font-normal text-slate-500 border-slate-200">
+                  {item.type}
+                </Badge>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-slate-900">
-                  <span className="font-semibold">{item.user}</span> {item.action} <span className="font-semibold">{item.target}</span> {item.context}
-                </p>
-                <p className="text-xs text-slate-500 mt-1">{item.time}</p>
+            )) : (
+              <div className="px-6 py-8 text-center text-slate-500 text-sm">
+                No recent activity recorded.
               </div>
-              <Badge variant="outline" className="text-xs font-normal text-slate-500 border-slate-200">
-                {item.type}
-              </Badge>
-            </div>
-          )) : (
-            <div className="px-6 py-8 text-center text-slate-500 text-sm">
-              No recent activity recorded.
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        </ScrollArea>
       </div>
     </div>
   );

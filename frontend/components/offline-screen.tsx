@@ -85,7 +85,7 @@ export function OfflineScreen() {
         transition={{ delay: 0.2, duration: 0.5 }}
         className="text-center space-y-4 max-w-lg mx-auto"
       >
-        <h1 className="text-3xl font-bold text-slate-900">You&apos;re currently offline.</h1>
+        <h1 className="text-3xl font-bold text-slate-900 font-fredoka">You&apos;re currently offline.</h1>
         <p className="text-slate-500 leading-relaxed px-4">
           StackleVest requires an internet connection to sync your messages and tasks. 
           We&apos;ll reconnect as soon as you&apos;re back online.

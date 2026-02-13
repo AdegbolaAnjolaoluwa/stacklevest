@@ -39,8 +39,11 @@ export function AddUserDialog({ open, onOpenChange, onUserAdd }: AddUserDialogPr
     const newUser = {
       name: formData.get("fullName"),
       email: formData.get("email"),
-      role: formData.get("role") || "MEMBER",
+      role: formData.get("role") || "STAFF",
       department: formData.get("department"),
+      jobTitle: formData.get("jobTitle"),
+      reportingManager: formData.get("reportingManager"),
+      staffNumber: formData.get("staffNumber"),
       status: "ACTIVE", // Default to active for now
       avatar: "",
     };
@@ -59,7 +62,7 @@ export function AddUserDialog({ open, onOpenChange, onUserAdd }: AddUserDialogPr
         <DialogHeader className="p-6 pb-4 border-b border-slate-100">
           <DialogTitle className="text-xl">Create New User</DialogTitle>
           <DialogDescription>
-            Add a new member to your StackleVest workspace.
+            Add a new staff member to your StackleVest workspace.
           </DialogDescription>
         </DialogHeader>
 
@@ -96,17 +99,34 @@ export function AddUserDialog({ open, onOpenChange, onUserAdd }: AddUserDialogPr
 
                 <div className="space-y-2">
                   <Label>Role</Label>
-                  <Select name="role" defaultValue="member">
+                  <Select name="role" defaultValue="STAFF">
                     <SelectTrigger>
                       <SelectValue placeholder="Assign a role" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="ADMIN">Admin</SelectItem>
                       <SelectItem value="MANAGER">Manager</SelectItem>
-                      <SelectItem value="MEMBER">Member</SelectItem>
-                      <SelectItem value="GUEST">Guest</SelectItem>
+                      <SelectItem value="STAFF">Staff</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="jobTitle">Official Job Title</Label>
+                    <Input id="jobTitle" name="jobTitle" placeholder="e.g. Senior Developer" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="staffNumber">Staff Number</Label>
+                    <Input id="staffNumber" name="staffNumber" placeholder="e.g. 001" />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="reportingManager">Reporting Manager</Label>
+                  <Input id="reportingManager" name="reportingManager" placeholder="e.g. Sarah Jenkins" />
                 </div>
               </div>
             </div>

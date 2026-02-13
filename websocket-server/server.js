@@ -3,6 +3,8 @@ const http = require('http');
 const { Server } = require("socket.io");
 const cors = require('cors');
 require('dotenv').config();
+const logger = require('./logger');
+const { validateFields } = require('./validation');
 const { Resend } = require('resend');
 const { initDB, readDB, writeDB } = require("./persistence");
 
@@ -12,6 +14,12 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 app.use(cors());
 app.use(express.json());
 
+// Basic request logging middleware
+app.use((req, res, next) => {
+    logger.info(`${req.method} ${req.url}`);
+    next();
+});
+
 // OTP Store (Memory)
 const otpStore = new Map();
 
@@ -19,13 +27,20 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "*", // In production, restrict this to the frontend URL
+    origin: "*", 
     methods: ["GET", "POST"]
   }
 });
 
 // Initialize DB
-initDB();
+try {
+    initDB();
+    logger.info("Database initialized successfully");
+} catch (error) {
+    logger.error("Failed to initialize database:", error);
+    process.exit(1);
+}
+
 let db = readDB();
 
 // Sync in-memory variables with DB
@@ -45,6 +60,19 @@ const saveState = () => {
 };
 
 // --- REST API for Authentication ---
+app.get('/api/users/email/:email', (req, res) => {
+    const { email } = req.params;
+    db = readDB();
+    users = db.users;
+    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    if (user) {
+        res.json(user);
+    } else {
+        res.status(404).json({ error: "User not found" });
+    }
+});
+
+// Admin: Get All Users
 app.get('/api/users', (req, res) => {
     // Refresh DB
     db = readDB();
@@ -52,9 +80,40 @@ app.get('/api/users', (req, res) => {
     res.json(users);
 });
 
+// Update User Profile
+app.patch('/api/users/:id', (req, res) => {
+    const { id } = req.params;
+    const updates = req.body;
+    
+    db = readDB();
+    users = db.users;
+    
+    const userIndex = users.findIndex(u => u.id === id);
+    if (userIndex === -1) {
+        return res.status(404).json({ error: "User not found" });
+    }
+    
+    // Update user fields
+    users[userIndex] = { ...users[userIndex], ...updates };
+    saveState();
+    
+    // Notify all clients about user update
+    io.emit("refresh", { 
+        type: 'user_updated', 
+        payload: users[userIndex] 
+    });
+    
+    res.json(users[userIndex]);
+});
+
 // Admin: Create User & Send Invite
 app.post('/api/users', async (req, res) => {
-    const { name, email, role, department } = req.body;
+    const error = validateFields(req.body, ['name', 'email']);
+    if (error) {
+        return res.status(400).json({ error });
+    }
+    
+    const { name, email, role, department, jobTitle, reportingManager, staffNumber } = req.body;
     
     // Refresh DB
     db = readDB();
@@ -72,8 +131,11 @@ app.post('/api/users', async (req, res) => {
         email,
         password: tempPassword,
         needsOnboarding: true, // Flag to trigger OTP & Password Change
-        role: role || "MEMBER",
+        role: role || "STAFF",
         department: department || "General",
+        jobTitle: jobTitle || "",
+        reportingManager: reportingManager || "",
+        staffNumber: staffNumber || "",
         status: "ACTIVE",
         avatar: "",
         createdAt: new Date().toISOString()
@@ -126,9 +188,19 @@ app.put('/api/users/:id', (req, res) => {
     
     const index = users.findIndex(u => u.id === id);
     if (index !== -1) {
-        users[index] = { ...users[index], ...updates };
+        const user = users[index];
+        const { name, role, department, jobTitle, reportingManager, staffNumber, status } = updates;
+        
+        if (name) user.name = name;
+        if (role) user.role = role;
+        if (department) user.department = department;
+        if (jobTitle) user.jobTitle = jobTitle;
+        if (reportingManager) user.reportingManager = reportingManager;
+        if (staffNumber) user.staffNumber = staffNumber;
+        if (status) user.status = status;
+
         saveState();
-        res.json(users[index]);
+        res.json(user);
     } else {
         res.status(404).json({ error: "User not found" });
     }
@@ -153,6 +225,11 @@ app.delete('/api/users/:id', (req, res) => {
 });
 
 app.post('/api/auth/otp/request', async (req, res) => {
+    const error = validateFields(req.body, ['email']);
+    if (error) {
+        return res.status(400).json({ error });
+    }
+    
     const { email } = req.body;
     
     // Refresh DB
@@ -171,7 +248,7 @@ app.post('/api/auth/otp/request', async (req, res) => {
 
     otpStore.set(email.toLowerCase(), { otp, expiresAt });
 
-    console.log(`\n=== OTP GENERATED ===\nUser: ${email}\nOTP: ${otp}\n=====================\n`);
+    logger.info(`OTP GENERATED - User: ${email}, Code: ${otp}`);
 
     // Send email via Resend
     try {
@@ -188,10 +265,10 @@ app.post('/api/auth/otp/request', async (req, res) => {
                 </div>
             `
         });
-        console.log(`Email sent to ${email}`);
+        logger.info(`Email sent to ${email}`);
         res.json({ message: "OTP sent" });
     } catch (error) {
-        console.error('Error sending email:', error);
+        logger.error('Error sending email:', error);
         res.status(500).json({ error: "Failed to send OTP email" });
     }
 });
@@ -319,6 +396,23 @@ io.on("connection", (socket) => {
       sendState();
   });
 
+  socket.on("request_history", (payload) => {
+    const { channelId, dmId } = payload;
+    let history = [];
+    if (channelId) {
+      history = messageHistory.filter(m => m.channelId === channelId);
+    } else if (dmId) {
+      // In a real app, DM history is between two specific users
+      // For now, we'll assume dmId is the "other" user's ID
+      // and we want messages where (sender=me AND dmId=other) OR (sender=other AND dmId=me)
+      history = messageHistory.filter(m => 
+        (m.senderId === socket.user.id && m.dmId === dmId) || 
+        (m.senderId === dmId && m.dmId === socket.user.id)
+      );
+    }
+    socket.emit("history", history);
+  });
+
   // Message Handler
   socket.on("message", (payload) => {
     try {
@@ -346,6 +440,84 @@ io.on("connection", (socket) => {
       io.emit("message", msg);
     } catch (e) {
       console.error("Error processing message:", e);
+    }
+  });
+
+  // Reaction Handler
+  socket.on("reaction", (payload) => {
+    try {
+      const { messageId, emoji } = payload;
+      const msg = messageHistory.find(m => m.id === messageId);
+      if (!msg) return;
+
+      if (!msg.reactions) msg.reactions = [];
+      
+      const reactionIndex = msg.reactions.findIndex(r => r.emoji === emoji);
+      const userId = socket.user.id;
+
+      if (reactionIndex !== -1) {
+        const reaction = msg.reactions[reactionIndex];
+        const userIndex = reaction.userIds.indexOf(userId);
+        if (userIndex !== -1) {
+          // Remove reaction if user already reacted with this emoji
+          reaction.userIds.splice(userIndex, 1);
+          if (reaction.userIds.length === 0) {
+            msg.reactions.splice(reactionIndex, 1);
+          }
+        } else {
+          // Add user to existing reaction
+          reaction.userIds.push(userId);
+        }
+      } else {
+        // Create new reaction
+        msg.reactions.push({ emoji, userIds: [userId] });
+      }
+
+      saveState();
+      io.emit("message_updated", msg);
+    } catch (e) {
+      console.error("Error processing reaction:", e);
+    }
+  });
+
+  // Delete Message Handler
+  socket.on("delete_message", (payload) => {
+    try {
+      const { messageId } = payload;
+      const index = messageHistory.findIndex(m => m.id === messageId);
+      
+      if (index !== -1) {
+        const msg = messageHistory[index];
+        
+        // Only allow sender or admin to delete
+        if (msg.senderId === socket.user.id || socket.user.role?.toLowerCase() === 'admin') {
+          messageHistory.splice(index, 1);
+          saveState();
+          io.emit("message_deleted", { messageId });
+        }
+      }
+    } catch (e) {
+      console.error("Error deleting message:", e);
+    }
+  });
+
+  // Update Status Handler
+  socket.on("update_status", (payload) => {
+    try {
+      const { status } = payload;
+      if (!["online", "busy", "offline"].includes(status)) return;
+
+      db = readDB();
+      const userIndex = db.users.findIndex(u => u.id === socket.user.id);
+      if (userIndex !== -1) {
+        db.users[userIndex].status = status;
+        saveState();
+        
+        // Broadcast to all users
+        io.emit("user_status_change", { userId: socket.user.id, status });
+      }
+    } catch (e) {
+      console.error("Error updating status:", e);
     }
   });
 
@@ -390,16 +562,58 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("delete_task", (taskId) => {
-    tasks = tasks.filter(t => t.id !== taskId);
-    saveState();
-    io.emit("task_deleted", taskId);
+  // Delete Task Handler
+  socket.on("delete_task", (payload) => {
+    try {
+      const taskId = typeof payload === 'string' ? payload : payload.taskId;
+      const task = tasks.find(t => t.id === taskId);
+      
+      if (task) {
+         // Allow creator to delete, or admin, or if task has no creatorId (legacy tasks)
+         const isCreator = task.creatorId && task.creatorId === socket.user.id;
+         const isAdmin = socket.user.role?.toLowerCase() === 'admin';
+         const isLegacyTask = !task.creatorId;
+
+         if (isCreator || isAdmin || isLegacyTask) {
+           tasks = tasks.filter(t => t.id !== taskId);
+           saveState();
+           io.emit("task_deleted", taskId);
+         }
+       }
+    } catch (e) {
+      console.error("Error deleting task:", e);
+    }
+  });
+
+  socket.on("add_task_comment", (data) => {
+    const { taskId, content, userId } = data;
+    const taskIndex = tasks.findIndex(t => t.id === taskId);
+    if (taskIndex !== -1) {
+      const newComment = {
+        id: "c" + Date.now(),
+        taskId,
+        userId,
+        content,
+        createdAt: new Date().toISOString()
+      };
+      if (!tasks[taskIndex].comments) {
+        tasks[taskIndex].comments = [];
+      }
+      tasks[taskIndex].comments.push(newComment);
+      saveState();
+      io.emit("refresh", { type: 'task_updated', payload: tasks[taskIndex] });
+    }
   });
 
   socket.on("update_task_status", ({ taskId, status }) => {
     const task = tasks.find(t => t.id === taskId);
     if (task) {
       task.status = status;
+      if (status === 'done') {
+        task.completedAt = new Date().toISOString();
+      } else {
+        delete task.completedAt;
+      }
       saveState();
       io.emit("task_updated", task);
     }
@@ -453,7 +667,7 @@ app.post('/api/auth/change-password', (req, res) => {
     }
 });
 
-const PORT = 8080;
+const PORT = process.env.PORT || 8080;
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });

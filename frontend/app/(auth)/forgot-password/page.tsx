@@ -54,7 +54,7 @@ export default function ForgotPasswordPage() {
               transition={{ delay: 0.3, duration: 0.4 }}
               className="space-y-2"
             >
-              <h1 className="text-2xl font-bold text-slate-900">Check your email</h1>
+              <h1 className="text-2xl font-bold text-slate-900 font-fredoka">Check your email</h1>
               <p className="text-slate-500 text-sm px-4 leading-relaxed">
                 We&apos;ve sent a password reset link to <span className="font-semibold text-slate-900">{email}</span>. Please check your inbox and follow the instructions.
               </p>
@@ -116,7 +116,7 @@ export default function ForgotPasswordPage() {
             <RotateCcw className="w-8 h-8" />
           </div>
           <div className="space-y-2">
-            <h1 className="text-2xl font-bold text-slate-900">Forgot your password?</h1>
+            <h1 className="text-2xl font-bold text-slate-900 font-fredoka">Forgot your password?</h1>
             <p className="text-slate-500 text-sm px-4 leading-relaxed">
               Enter your work email and we will send you a link to reset your password.
             </p>

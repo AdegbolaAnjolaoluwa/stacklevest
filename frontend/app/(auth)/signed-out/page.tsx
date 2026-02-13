@@ -25,7 +25,7 @@ export default function SignedOutPage() {
         </div>
 
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold text-slate-900">Signed Out</h1>
+          <h1 className="text-2xl font-bold text-slate-900 font-fredoka">Signed Out</h1>
           <p className="text-slate-500">
             You have successfully signed out of your workspace. See you again soon!
           </p>

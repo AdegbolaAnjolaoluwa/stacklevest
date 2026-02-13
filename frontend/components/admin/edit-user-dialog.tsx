@@ -28,6 +28,10 @@ interface EditUserDialogProps {
     email: string;
     role: string;
     status: string;
+    jobTitle?: string;
+    reportingManager?: string;
+    staffNumber?: string;
+    department?: string;
   } | null;
   onSave: (updatedUser: any) => void;
 }
@@ -35,8 +39,12 @@ interface EditUserDialogProps {
 export function EditUserDialog({ open, onOpenChange, user, onSave }: EditUserDialogProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState("MEMBER");
+  const [role, setRole] = useState("STAFF");
   const [status, setStatus] = useState("ACTIVE");
+  const [jobTitle, setJobTitle] = useState("");
+  const [reportingManager, setReportingManager] = useState("");
+  const [staffNumber, setStaffNumber] = useState("");
+  const [department, setDepartment] = useState("");
 
   useEffect(() => {
     if (user) {
@@ -44,6 +52,10 @@ export function EditUserDialog({ open, onOpenChange, user, onSave }: EditUserDia
       setEmail(user.email);
       setRole(user.role);
       setStatus(user.status);
+      setJobTitle(user.jobTitle || "");
+      setReportingManager(user.reportingManager || "");
+      setStaffNumber(user.staffNumber || "");
+      setDepartment(user.department || "");
     }
   }, [user]);
 
@@ -55,6 +67,10 @@ export function EditUserDialog({ open, onOpenChange, user, onSave }: EditUserDia
         email,
         role,
         status,
+        jobTitle,
+        reportingManager,
+        staffNumber,
+        department,
       });
       onOpenChange(false);
     }
@@ -101,7 +117,7 @@ export function EditUserDialog({ open, onOpenChange, user, onSave }: EditUserDia
                 <SelectContent>
                   <SelectItem value="ADMIN">Admin</SelectItem>
                   <SelectItem value="MANAGER">Manager</SelectItem>
-                  <SelectItem value="MEMBER">Member</SelectItem>
+                  <SelectItem value="STAFF">Staff</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -122,6 +138,62 @@ export function EditUserDialog({ open, onOpenChange, user, onSave }: EditUserDia
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="department" className="text-right">
+              Department
+            </Label>
+            <div className="col-span-3">
+               <Select value={department} onValueChange={setDepartment}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="engineering">Engineering</SelectItem>
+                  <SelectItem value="design">Design</SelectItem>
+                  <SelectItem value="marketing">Marketing</SelectItem>
+                  <SelectItem value="sales">Sales</SelectItem>
+                  <SelectItem value="hr">Human Resources</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="jobTitle" className="text-right">
+              Job Title
+            </Label>
+            <Input
+              id="jobTitle"
+              value={jobTitle}
+              onChange={(e) => setJobTitle(e.target.value)}
+              className="col-span-3"
+            />
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="staffNumber" className="text-right">
+              Staff Number
+            </Label>
+            <Input
+              id="staffNumber"
+              value={staffNumber}
+              onChange={(e) => setStaffNumber(e.target.value)}
+              className="col-span-3"
+            />
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="reportingManager" className="text-right">
+              Manager
+            </Label>
+            <Input
+              id="reportingManager"
+              value={reportingManager}
+              onChange={(e) => setReportingManager(e.target.value)}
+              className="col-span-3"
+            />
           </div>
         </div>
         <DialogFooter>

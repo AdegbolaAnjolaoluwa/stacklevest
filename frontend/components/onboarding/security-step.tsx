@@ -27,7 +27,7 @@ export function SecurityStep({ onFinish }: SecurityStepProps) {
           </div>
           <h2 className="text-2xl font-bold text-slate-900">Security Briefing & Accountability</h2>
           <p className="text-slate-500 mt-2 max-w-md mx-auto">
-            As a StackleVest team member, you handle high-stakes proprietary data. Please review and formally acknowledge the protocols below.
+            As a StackleVest staff member, you handle high-stakes proprietary data. Please review and formally acknowledge the protocols below.
           </p>
         </div>
 

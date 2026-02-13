@@ -4,22 +4,28 @@ StackleVest is a modern, real-time collaboration platform designed for seamless 
 
 ## 🚀 Features
 
-- **Real-time Messaging**: Instant communication via Channels and Direct Messages (powered by WebSockets).
-- **Task Management**: Integrated Kanban board for tracking project progress.
-- **Admin Console**: Comprehensive user management and access control (Role-based).
-- **Modern UI**: Built with Next.js 16, Tailwind CSS 4, and Framer Motion for a fluid user experience.
+- **Real-time Messaging**: Instant communication via Channels and Direct Messages (powered by Socket.io).
+- **Advanced Task Management**: Integrated Kanban board with detailed task views, progress tracking, and real-time updates.
+- **Admin Dashboard**: Comprehensive management of users, tasks, and system settings.
+- **Global Search**: Quick navigation across messages, tasks, and channels using ⌘K.
+- **Onboarding Flow**: Smooth user registration and profile setup experience.
+- **Modern UI**: Built with Next.js 15, Tailwind CSS, and Fredoka Google Font for a distinct, high-end feel.
 
 ## 🛠️ Tech Stack
 
 ### Frontend
-- **Framework**: [Next.js 16](https://nextjs.org/) (App Router)
-- **Styling**: [Tailwind CSS 4](https://tailwindcss.com/)
-- **Components**: [Radix UI](https://www.radix-ui.com/), [Lucide React](https://lucide.dev/) (Icons)
+- **Framework**: [Next.js 15](https://nextjs.org/) (App Router)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+- **State Management**: React Context API
+- **Real-time**: Socket.io Client
+- **Typography**: [Fredoka](https://fonts.google.com/specimen/Fredoka) (Google Font)
+- **Components**: [Radix UI](https://www.radix-ui.com/), [Lucide React](https://lucide.dev/)
 - **Animations**: [Framer Motion](https://www.framer.com/motion/)
-- **Drag & Drop**: `@hello-pangea/dnd`
 
 ### Backend
-- **WebSocket Server**: Node.js with `ws` library (Port 8080)
+- **Server**: Node.js with Express & [Socket.io](https://socket.io/)
+- **Persistence**: JSON-based file storage with local backup support
+- **Validation**: Joi-based request validation
 
 ## 📦 Getting Started
 
@@ -70,7 +76,7 @@ npm run dev
 To access the Admin Console:
 - Navigate to the dashboard.
 - The Admin Console link appears in the sidebar **only** for users with the `admin` role.
-- **Default Admin User**: `david@stacklevest.com` (King David Developer)
+- **Default Admin User**: `abutankokingdavid@stacklevest.com` (King David Developer)
 - *Note: Access to `/admin` routes is strictly enforced via role-based protection.*
 
 ## 📂 Project Structure

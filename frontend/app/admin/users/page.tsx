@@ -42,9 +42,9 @@ export default function UserManagementPage() {
 
   const getApiUrl = () => {
     if (typeof window !== 'undefined') {
-      return `http://${window.location.hostname}:8080`;
+      return `http://${window.location.hostname}:8082`;
     }
-    return 'http://localhost:8080';
+    return 'http://localhost:8082';
   };
 
   const fetchUsers = async () => {
@@ -113,7 +113,7 @@ export default function UserManagementPage() {
   const handleConfirmDelete = async () => {
     if (selectedUser) {
       try {
-        const res = await fetch(`http://localhost:8080/api/users/${selectedUser.id}`, {
+        const res = await fetch(`${getApiUrl()}/api/users/${selectedUser.id}`, {
           method: "DELETE"
         });
 
@@ -132,7 +132,7 @@ export default function UserManagementPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">User Management</h1>
-          <p className="text-slate-500 mt-1">Manage team members, roles, and account access levels.</p>
+          <p className="text-slate-500 mt-1">Manage staff members, roles, and account access levels.</p>
         </div>
         <div className="flex items-center gap-2">
            <Button variant="outline" className="gap-2 text-slate-600 border-slate-200">
@@ -168,7 +168,7 @@ export default function UserManagementPage() {
               Role: All
               <Filter className="w-3 h-3" />
             </Button>
-            <span className="text-xs text-slate-400">Showing {filteredUsers.length} members</span>
+            <span className="text-xs text-slate-400">Showing {filteredUsers.length} staff members</span>
          </div>
       </div>
 
@@ -179,6 +179,7 @@ export default function UserManagementPage() {
             <TableRow>
               <TableHead className="w-[300px] text-xs uppercase tracking-wider font-semibold text-slate-500">User</TableHead>
               <TableHead className="text-xs uppercase tracking-wider font-semibold text-slate-500">Email Address</TableHead>
+              <TableHead className="text-xs uppercase tracking-wider font-semibold text-slate-500">Staff #</TableHead>
               <TableHead className="text-xs uppercase tracking-wider font-semibold text-slate-500">Role</TableHead>
               <TableHead className="text-xs uppercase tracking-wider font-semibold text-slate-500">Status</TableHead>
               <TableHead className="text-right text-xs uppercase tracking-wider font-semibold text-slate-500">Actions</TableHead>
@@ -199,13 +200,14 @@ export default function UserManagementPage() {
                   </div>
                 </TableCell>
                 <TableCell className="text-slate-500">{user.email}</TableCell>
+                <TableCell className="text-slate-500 font-mono text-xs">{user.staffNumber || '—'}</TableCell>
                 <TableCell>
                   <Badge 
                     variant="secondary" 
                     className={`
-                      ${user.role === 'ADMIN' ? 'bg-purple-100 text-purple-700 hover:bg-purple-100' : ''}
-                      ${user.role === 'MANAGER' ? 'bg-blue-100 text-blue-700 hover:bg-blue-100' : ''}
-                      ${user.role === 'MEMBER' ? 'bg-slate-100 text-slate-700 hover:bg-slate-100' : ''}
+                      ${user.role?.toUpperCase() === 'ADMIN' ? 'bg-purple-100 text-purple-700 hover:bg-purple-100' : ''}
+                      ${user.role?.toUpperCase() === 'MANAGER' ? 'bg-blue-100 text-blue-700 hover:bg-blue-100' : ''}
+                      ${user.role?.toUpperCase() === 'STAFF' ? 'bg-slate-100 text-slate-700 hover:bg-slate-100' : ''}
                       border-none font-semibold text-[10px] px-2 py-0.5
                     `}
                   >

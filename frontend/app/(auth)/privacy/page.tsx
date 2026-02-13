@@ -36,7 +36,7 @@ export default function PrivacyPolicyPage() {
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 text-blue-600 mb-4">
             <Lock className="w-6 h-6" />
           </div>
-          <h1 className="text-4xl font-bold text-slate-900 tracking-tight">Privacy Policy</h1>
+          <h1 className="text-4xl font-bold text-slate-900 tracking-tight font-fredoka">Privacy Policy</h1>
           <p className="text-lg text-slate-600 max-w-2xl mx-auto">
             We are committed to protecting your personal data and ensuring transparency in how we handle your information.
           </p>
@@ -60,7 +60,7 @@ export default function PrivacyPolicyPage() {
               <Eye className="w-4 h-4 text-blue-600" />
             </div>
             <div className="space-y-3">
-              <h2 className="text-xl font-semibold text-slate-900">1. Information We Collect</h2>
+              <h2 className="text-xl font-semibold text-slate-900 font-fredoka">1. Information We Collect</h2>
               <p className="text-slate-600 leading-relaxed">
                 We collect information that you provide directly to us when you register for an account, create or modify your profile, set preferences, sign up for or make purchases, or otherwise communicate with us. This information may include:
               </p>
@@ -80,7 +80,7 @@ export default function PrivacyPolicyPage() {
               <FileText className="w-4 h-4 text-purple-600" />
             </div>
             <div className="space-y-3">
-              <h2 className="text-xl font-semibold text-slate-900">2. How We Use Your Information</h2>
+              <h2 className="text-xl font-semibold text-slate-900 font-fredoka">2. How We Use Your Information</h2>
               <p className="text-slate-600 leading-relaxed">
                 We use the information we collect to operate, maintain, and improve our services. Specifically, we use your data to:
               </p>
@@ -110,7 +110,7 @@ export default function PrivacyPolicyPage() {
               <Server className="w-4 h-4 text-green-600" />
             </div>
             <div className="space-y-3">
-              <h2 className="text-xl font-semibold text-slate-900">3. Data Security</h2>
+              <h2 className="text-xl font-semibold text-slate-900 font-fredoka">3. Data Security</h2>
               <p className="text-slate-600 leading-relaxed">
                 We use administrative, technical, and physical security measures to help protect your personal information. While we have taken reasonable steps to secure the personal information you provide to us, please be aware that despite our efforts, no security measures are perfect or impenetrable, and no method of data transmission can be guaranteed against any interception or other type of misuse.
               </p>
@@ -120,7 +120,7 @@ export default function PrivacyPolicyPage() {
 
         {/* Contact */}
         <section className="bg-slate-50 rounded-2xl p-8 text-center space-y-4">
-          <h3 className="text-lg font-semibold text-slate-900">Have questions about our privacy practices?</h3>
+          <h3 className="text-lg font-semibold text-slate-900 font-fredoka">Have questions about our privacy practices?</h3>
           <p className="text-slate-600">
             If you have any questions or concerns, please contact our Data Protection Officer.
           </p>
