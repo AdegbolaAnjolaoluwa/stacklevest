@@ -430,14 +430,14 @@ export default function WorkspacePage() {
             <div className="flex-1 p-6 overflow-x-auto overflow-y-hidden">
                  {isMounted ? (
                    <DragDropContext onDragEnd={onDragEnd}>
-                     <div className="flex gap-6 h-full min-w-[1000px]">
+                    <div className="flex gap-6 h-full md:flex-row flex-col md:min-w-[1000px]">
                           {/* TO DO Column */}
                           <Droppable droppableId="todo">
                             {(provided: DroppableProvided) => (
                               <div 
                                 ref={provided.innerRef} 
                                 {...provided.droppableProps}
-                                className="flex-1 flex flex-col min-w-[300px]"
+                                className="flex-1 flex flex-col md:min-w-[300px] min-w-full"
                               >
                                   <div className="flex items-center justify-between mb-4 px-1">
                                       <div className="flex items-center gap-2">
@@ -497,7 +497,7 @@ export default function WorkspacePage() {
                               <div 
                                 ref={provided.innerRef} 
                                 {...provided.droppableProps}
-                                className="flex-1 flex flex-col min-w-[300px]"
+                                className="flex-1 flex flex-col md:min-w-[300px] min-w-full"
                               >
                                   <div className="flex items-center justify-between mb-4 px-1">
                                       <div className="flex items-center gap-2">
@@ -557,7 +557,7 @@ export default function WorkspacePage() {
                               <div 
                                 ref={provided.innerRef} 
                                 {...provided.droppableProps}
-                                className="flex-1 flex flex-col min-w-[300px]"
+                                className="flex-1 flex flex-col md:min-w-[300px] min-w-full"
                               >
                                   <div className="flex items-center justify-between mb-4 px-1">
                                       <div className="flex items-center gap-2">

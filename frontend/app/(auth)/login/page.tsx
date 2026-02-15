@@ -15,6 +15,8 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [otp, setOtp] = useState("");
+  const [requiresOtp, setRequiresOtp] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   
@@ -22,24 +24,52 @@ export default function LoginPage() {
     if (typeof window !== 'undefined') {
       return `http://${window.location.hostname}:8082`;
     }
-    return 'http://localhost:8082';
+    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8082';
   };
 
   const handleCredentialsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    await attemptLogin(email, password, otp);
+  };
+
+  const attemptLogin = async (emailInput: string, passwordInput: string, otpInput?: string) => {
     setError("");
     setIsLoading(true);
-
     try {
-      // Direct sign in without OTP
+      const emailTrimmed = emailInput.trim();
+      const passwordTrimmed = passwordInput.trim();
+      const apiUrl = getApiUrl();
+      console.log("Login attempt", { apiUrl, email: emailTrimmed });
+
+      if (!requiresOtp) {
+        const res = await fetch(`${apiUrl}/api/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: emailTrimmed, password: passwordTrimmed })
+        });
+        const data = await res.json();
+        console.log("Precheck response", { status: res.status, data });
+        if (!res.ok) {
+          setError(data?.error || "Invalid email or password");
+          return;
+        }
+        if (data.requiresOtp) {
+          setRequiresOtp(true);
+          setError("Enter the OTP sent to your email");
+          return;
+        }
+      }
+
       const result = await signIn("credentials", {
-        email,
-        password,
+        email: emailTrimmed,
+        password: passwordTrimmed,
+        otp: requiresOtp ? otpInput : undefined,
         redirect: false,
       });
 
+      console.log("NextAuth signIn result", result);
       if (result?.error) {
-        setError(result.error);
+        setError(result.error === "CredentialsSignin" ? "Invalid email or password" : result.error);
       } else {
         router.push("/dashboard");
       }
@@ -105,12 +135,24 @@ export default function LoginPage() {
                   icon={<Lock className="w-4 h-4" />}
                 />
               </div>
+        {requiresOtp && (
+          <div className="space-y-2">
+            <Label htmlFor="otp">One-Time Password</Label>
+            <Input 
+              id="otp" 
+              type="text" 
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+              placeholder="6-digit code" 
+            />
+          </div>
+        )}
 
-              {error && <p className="text-sm text-red-500 font-medium">{error}</p>}
+        {error && <p className="text-sm text-red-500 font-medium">{error}</p>}
 
-              <Button className="w-full" size="lg" disabled={isLoading}>
-                {isLoading ? "Loading..." : "Login"}
-              </Button>
+        <Button className="w-full" size="lg" disabled={isLoading}>
+          {isLoading ? "Loading..." : requiresOtp ? "Verify & Login" : "Login"}
+        </Button>
             </form>
 
             <div className="pt-6 border-t border-slate-100">
@@ -118,7 +160,14 @@ export default function LoginPage() {
               <div className="grid grid-cols-2 gap-2">
                 <button 
                   type="button"
-                  onClick={() => { setEmail("abutankokingdavid@stacklevest.com"); setPassword("password123"); setError(""); }}
+                  onClick={() => { 
+                    const e = "abutankokingdavid@stacklevest.com";
+                    const p = "password123";
+                    setEmail(e); 
+                    setPassword(p); 
+                    setError(""); 
+                    attemptLogin(e, p);
+                  }}
                   className="text-left text-xs p-2 rounded hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-colors"
                 >
                   <div className="font-semibold text-slate-900">David (Admin)</div>
@@ -126,7 +175,14 @@ export default function LoginPage() {
                 </button>
                 <button 
                   type="button"
-                  onClick={() => { setEmail("anjeesax@gmail.com"); setPassword("password123"); setError(""); }}
+                  onClick={() => { 
+                    const e = "Anjeesax@gmail.com";
+                    const p = "Anjeesax2007";
+                    setEmail(e); 
+                    setPassword(p); 
+                    setError(""); 
+                    attemptLogin(e, p);
+                  }}
                   className="text-left text-xs p-2 rounded hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-colors"
                 >
                   <div className="font-semibold text-slate-900">Anjola (Member)</div>

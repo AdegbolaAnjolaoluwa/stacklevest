@@ -15,7 +15,7 @@ interface WorkspaceContextType extends WorkspaceState {
   createChannel: (name: string, description?: string, type?: "public" | "private") => void;
   markChannelRead: (channelId: string) => void;
   updateTaskStatus: (taskId: string, newStatus: "todo" | "in_progress" | "done") => void;
-  createTask: (task: Omit<Task, "id">) => void;
+  createTask: (task: Omit<Task, "id" | "creatorId" | "createdAt" | "progress">) => void;
   updateTask: (task: Task) => void;
   deleteTask: (taskId: string) => void;
   addTaskComment: (taskId: string, content: string) => void;
@@ -518,7 +518,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     socket.emit("update_task_status", { taskId, status: newStatus });
   };
 
-  const createTask = (taskData: Omit<Task, "id">) => {
+  const createTask = (taskData: Omit<Task, "id" | "creatorId" | "createdAt" | "progress">) => {
     const newTask = {
         ...taskData,
         id: Math.random().toString(36).substring(7),

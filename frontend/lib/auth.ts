@@ -2,12 +2,15 @@ import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GithubProvider from "next-auth/providers/github";
 
+const API_URL = process.env.API_URL || "http://localhost:8082";
+
 export const authorize = async (credentials: any) => {
   if (!credentials?.email) return null;
   
   try {
     // Connect to our own Backend API
-    const res = await fetch("http://localhost:8082/api/login", {
+    console.log("Authorize: calling backend", { API_URL, email: credentials.email });
+    const res = await fetch(`${API_URL}/api/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -17,11 +20,23 @@ export const authorize = async (credentials: any) => {
       })
     });
 
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      console.warn("Authorize: backend responded non-OK", { status: res.status, body: text });
+      return null;
+    }
 
     const user = await res.json();
+    console.log("Authorize: backend user", user);
+    
+    // If backend indicates OTP is required, do not authorize yet
+    if (user?.requiresOtp) {
+      console.warn("Authorize blocked: OTP required");
+      return null;
+    }
     
     if (user) {
+      console.log("Authorize success for:", credentials.email);
       return {
         id: user.id,
         name: user.name,
@@ -37,7 +52,7 @@ export const authorize = async (credentials: any) => {
       };
     }
   } catch (error) {
-    console.error("Login failed error:", error);
+    console.error("Authorize error:", error);
     return null;
   }
   return null;
@@ -63,6 +78,7 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user, trigger, session }) {
       // Initial sign in
       if (user) {
+        (token as any).email = (user as any).email;
         token.role = (user as any).role;
         token.needsOnboarding = (user as any).needsOnboarding;
         token.jobTitle = (user as any).jobTitle;
@@ -83,7 +99,7 @@ export const authOptions: NextAuthOptions = {
       
       if (token.email && (!token.lastRefreshed || now - (token.lastRefreshed as number) > oneHour)) {
         try {
-          const res = await fetch(`http://localhost:8082/api/users/email/${token.email}`);
+          const res = await fetch(`${API_URL}/api/users/email/${token.email}`);
           if (res.ok) {
             const userData = await res.json();
             token.role = (userData.role || "staff").toLowerCase();
