@@ -14,15 +14,15 @@ export default function WorkspaceLayout({
   children: React.ReactNode;
 }) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const { 
-    activeView, 
-    setActiveView, 
-    channels, 
-    dms, 
-    activeChannelId, 
-    activeDmId, 
-    setActiveChannel, 
-    setActiveDm 
+  const {
+    activeView,
+    setActiveView,
+    channels,
+    dms,
+    activeChannelId,
+    activeDmId,
+    setActiveChannel,
+    setActiveDm
   } = useWorkspace();
 
   return (

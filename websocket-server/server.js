@@ -16,8 +16,12 @@ app.use(express.json());
 
 // Basic request logging middleware
 app.use((req, res, next) => {
-    logger.info(`${req.method} ${req.url}`);
-    next();
+  logger.info(`${req.method} ${req.url}`);
+  next();
+});
+
+app.get('/health', (req, res) => {
+  res.json({ status: "healthy", service: "websocket-server" });
 });
 
 // OTP Store (Memory)
@@ -27,18 +31,18 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "*", 
+    origin: "*",
     methods: ["GET", "POST"]
   }
 });
 
 // Initialize DB
 try {
-    initDB();
-    logger.info("Database initialized successfully");
+  initDB();
+  logger.info("Database initialized successfully");
 } catch (error) {
-    logger.error("Failed to initialize database:", error);
-    process.exit(1);
+  logger.error("Failed to initialize database:", error);
+  process.exit(1);
 }
 
 let db = readDB();
@@ -61,100 +65,100 @@ const saveState = () => {
 
 // --- REST API for Authentication ---
 app.get('/api/users/email/:email', (req, res) => {
-    const { email } = req.params;
-    db = readDB();
-    users = db.users;
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (user) {
-        res.json(user);
-    } else {
-        res.status(404).json({ error: "User not found" });
-    }
+  const { email } = req.params;
+  db = readDB();
+  users = db.users;
+  const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+  if (user) {
+    res.json(user);
+  } else {
+    res.status(404).json({ error: "User not found" });
+  }
 });
 
 // Admin: Get All Users
 app.get('/api/users', (req, res) => {
-    // Refresh DB
-    db = readDB();
-    users = db.users;
-    res.json(users);
+  // Refresh DB
+  db = readDB();
+  users = db.users;
+  res.json(users);
 });
 
 // Update User Profile
 app.patch('/api/users/:id', (req, res) => {
-    const { id } = req.params;
-    const updates = req.body;
-    
-    db = readDB();
-    users = db.users;
-    
-    const userIndex = users.findIndex(u => u.id === id);
-    if (userIndex === -1) {
-        return res.status(404).json({ error: "User not found" });
-    }
-    
-    // Update user fields
-    users[userIndex] = { ...users[userIndex], ...updates };
-    saveState();
-    
-    // Notify all clients about user update
-    io.emit("refresh", { 
-        type: 'user_updated', 
-        payload: users[userIndex] 
-    });
-    
-    res.json(users[userIndex]);
+  const { id } = req.params;
+  const updates = req.body;
+
+  db = readDB();
+  users = db.users;
+
+  const userIndex = users.findIndex(u => u.id === id);
+  if (userIndex === -1) {
+    return res.status(404).json({ error: "User not found" });
+  }
+
+  // Update user fields
+  users[userIndex] = { ...users[userIndex], ...updates };
+  saveState();
+
+  // Notify all clients about user update
+  io.emit("refresh", {
+    type: 'user_updated',
+    payload: users[userIndex]
+  });
+
+  res.json(users[userIndex]);
 });
 
 // Admin: Create User & Send Invite
 app.post('/api/users', async (req, res) => {
-    const error = validateFields(req.body, ['name', 'email']);
-    if (error) {
-        return res.status(400).json({ error });
-    }
-    
-    const { name, email, role, department, jobTitle, reportingManager, staffNumber } = req.body;
-    
-    // Refresh DB
-    db = readDB();
-    users = db.users;
+  const error = validateFields(req.body, ['name', 'email']);
+  if (error) {
+    return res.status(400).json({ error });
+  }
 
-    if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
-        return res.status(400).json({ error: "User with this email already exists" });
-    }
+  const { name, email, role, department, jobTitle, reportingManager, staffNumber } = req.body;
 
-    const tempPassword = Math.random().toString(36).slice(-8); // Generate 8-char random password
+  // Refresh DB
+  db = readDB();
+  users = db.users;
 
-    const newUser = {
-        id: "u" + Date.now(),
-        name,
-        email,
-        password: tempPassword,
-        needsOnboarding: true, // Flag to trigger OTP & Password Change
-        role: role || "STAFF",
-        department: department || "General",
-        jobTitle: jobTitle || "",
-        reportingManager: reportingManager || "",
-        staffNumber: staffNumber || "",
-        status: "ACTIVE",
-        avatar: "",
-        createdAt: new Date().toISOString()
-    };
+  if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
+    return res.status(400).json({ error: "User with this email already exists" });
+  }
 
-    users.push(newUser);
-    saveState();
+  const tempPassword = Math.random().toString(36).slice(-8); // Generate 8-char random password
 
-    // Construct Frontend URL (Assuming frontend runs on port 3000 on the same host)
-    const host = req.get('host').split(':')[0];
-    const frontendUrl = `http://${host}:3000`;
+  const newUser = {
+    id: "u" + Date.now(),
+    name,
+    email,
+    password: tempPassword,
+    needsOnboarding: true, // Flag to trigger OTP & Password Change
+    role: role || "STAFF",
+    department: department || "General",
+    jobTitle: jobTitle || "",
+    reportingManager: reportingManager || "",
+    staffNumber: staffNumber || "",
+    status: "ACTIVE",
+    avatar: "",
+    createdAt: new Date().toISOString()
+  };
 
-    // Send Welcome Email with Login Link & Password
-    try {
-        await resend.emails.send({
-            from: process.env.SENDER_EMAIL || 'onboarding@resend.dev',
-            to: email,
-            subject: 'Welcome to StackleVest',
-            html: `
+  users.push(newUser);
+  saveState();
+
+  // Construct Frontend URL (Assuming frontend runs on port 3000 on the same host)
+  const host = req.get('host').split(':')[0];
+  const frontendUrl = `http://${host}:3000`;
+
+  // Send Welcome Email with Login Link & Password
+  try {
+    await resend.emails.send({
+      from: process.env.SENDER_EMAIL || 'onboarding@resend.dev',
+      to: email,
+      subject: 'Welcome to StackleVest',
+      html: `
                 <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
                     <h2>Welcome to StackleVest!</h2>
                     <p>Hi ${name},</p>
@@ -168,95 +172,95 @@ app.post('/api/users', async (req, res) => {
                     <p>Best regards,<br>The StackleVest Team</p>
                 </div>
             `
-        });
-        console.log(`\n=== USER CREATED ===\nEmail: ${email}\nTemp Password: ${tempPassword}\nLink: ${frontendUrl}/login\n====================\n`);
-    } catch (error) {
-        console.error('Error sending welcome email:', error);
-        // We don't fail the request if email fails, but we log it
-    }
+    });
+    console.log(`\n=== USER CREATED ===\nEmail: ${email}\nTemp Password: ${tempPassword}\nLink: ${frontendUrl}/login\n====================\n`);
+  } catch (error) {
+    console.error('Error sending welcome email:', error);
+    // We don't fail the request if email fails, but we log it
+  }
 
-    res.json(newUser);
+  res.json(newUser);
 });
 
 // Admin: Update User
 app.put('/api/users/:id', (req, res) => {
-    const { id } = req.params;
-    const updates = req.body;
-    
-    db = readDB();
-    users = db.users;
-    
-    const index = users.findIndex(u => u.id === id);
-    if (index !== -1) {
-        const user = users[index];
-        const { name, role, department, jobTitle, reportingManager, staffNumber, status } = updates;
-        
-        if (name) user.name = name;
-        if (role) user.role = role;
-        if (department) user.department = department;
-        if (jobTitle) user.jobTitle = jobTitle;
-        if (reportingManager) user.reportingManager = reportingManager;
-        if (staffNumber) user.staffNumber = staffNumber;
-        if (status) user.status = status;
+  const { id } = req.params;
+  const updates = req.body;
 
-        saveState();
-        res.json(user);
-    } else {
-        res.status(404).json({ error: "User not found" });
-    }
+  db = readDB();
+  users = db.users;
+
+  const index = users.findIndex(u => u.id === id);
+  if (index !== -1) {
+    const user = users[index];
+    const { name, role, department, jobTitle, reportingManager, staffNumber, status } = updates;
+
+    if (name) user.name = name;
+    if (role) user.role = role;
+    if (department) user.department = department;
+    if (jobTitle) user.jobTitle = jobTitle;
+    if (reportingManager) user.reportingManager = reportingManager;
+    if (staffNumber) user.staffNumber = staffNumber;
+    if (status) user.status = status;
+
+    saveState();
+    res.json(user);
+  } else {
+    res.status(404).json({ error: "User not found" });
+  }
 });
 
 // Admin: Delete User
 app.delete('/api/users/:id', (req, res) => {
-    const { id } = req.params;
-    
-    db = readDB();
-    users = db.users;
-    
-    const initialLength = users.length;
-    users = users.filter(u => u.id !== id);
-    
-    if (users.length < initialLength) {
-        saveState();
-        res.json({ success: true });
-    } else {
-        res.status(404).json({ error: "User not found" });
-    }
+  const { id } = req.params;
+
+  db = readDB();
+  users = db.users;
+
+  const initialLength = users.length;
+  users = users.filter(u => u.id !== id);
+
+  if (users.length < initialLength) {
+    saveState();
+    res.json({ success: true });
+  } else {
+    res.status(404).json({ error: "User not found" });
+  }
 });
 
 app.post('/api/auth/otp/request', async (req, res) => {
-    const error = validateFields(req.body, ['email']);
-    if (error) {
-        return res.status(400).json({ error });
-    }
-    
-    const { email } = req.body;
-    
-    // Refresh DB
-    db = readDB();
-    users = db.users;
+  const error = validateFields(req.body, ['email']);
+  if (error) {
+    return res.status(400).json({ error });
+  }
 
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+  const { email } = req.body;
 
-    if (!user) {
-        return res.status(404).json({ error: "User not found" });
-    }
+  // Refresh DB
+  db = readDB();
+  users = db.users;
 
-    // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
+  const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
 
-    otpStore.set(email.toLowerCase(), { otp, expiresAt });
+  if (!user) {
+    return res.status(404).json({ error: "User not found" });
+  }
 
-    logger.info(`OTP GENERATED - User: ${email}, Code: ${otp}`);
+  // Generate 6-digit OTP
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
 
-    // Send email via Resend
-    try {
-        await resend.emails.send({
-            from: process.env.SENDER_EMAIL || 'onboarding@resend.dev',
-            to: email,
-            subject: 'Your StackleVest Login Code',
-            html: `
+  otpStore.set(email.toLowerCase(), { otp, expiresAt });
+
+  logger.info(`OTP GENERATED - User: ${email}, Code: ${otp}`);
+
+  // Send email via Resend
+  try {
+    await resend.emails.send({
+      from: process.env.SENDER_EMAIL || 'onboarding@resend.dev',
+      to: email,
+      subject: 'Your StackleVest Login Code',
+      html: `
                 <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
                     <h2>Login to StackleVest</h2>
                     <p>Your one-time password is:</p>
@@ -264,78 +268,89 @@ app.post('/api/auth/otp/request', async (req, res) => {
                     <p>This code will expire in 5 minutes.</p>
                 </div>
             `
-        });
-        logger.info(`Email sent to ${email}`);
-        res.json({ message: "OTP sent" });
-    } catch (error) {
-        logger.error('Error sending email:', error);
-        res.status(500).json({ error: "Failed to send OTP email" });
-    }
+    });
+    logger.info(`Email sent to ${email}`);
+    res.json({ message: "OTP sent" });
+  } catch (error) {
+    logger.error('Error sending email:', error);
+    res.status(500).json({ error: "Failed to send OTP email" });
+  }
 });
 
+const bcrypt = require('bcryptjs');
+
 app.post('/api/login', async (req, res) => {
-    const { email, password, otp } = req.body;
-    
-    // Refresh DB
-    db = readDB();
-    users = db.users;
+  const { email, password, otp } = req.body;
 
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+  // Refresh DB
+  db = readDB();
+  users = db.users;
 
-    if (!user) {
-        return res.status(401).json({ error: "Invalid credentials" });
+  const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+
+  if (!user) {
+    return res.status(401).json({ error: "Invalid credentials" });
+  }
+
+  // SCENARIO 1: OTP Verification (Step 2)
+  if (otp) {
+    const storedOtpData = otpStore.get(email.toLowerCase());
+
+    if (!storedOtpData) {
+      return res.status(401).json({ error: "No OTP requested or expired" });
     }
 
-    // SCENARIO 1: OTP Verification (Step 2)
-    if (otp) {
-        const storedOtpData = otpStore.get(email.toLowerCase());
-        
-        if (!storedOtpData) {
-            return res.status(401).json({ error: "No OTP requested or expired" });
-        }
-
-        if (Date.now() > storedOtpData.expiresAt) {
-            otpStore.delete(email.toLowerCase());
-            return res.status(401).json({ error: "OTP expired" });
-        }
-
-        if (storedOtpData.otp !== otp) {
-            return res.status(401).json({ error: "Invalid OTP" });
-        }
-
-        // OTP Valid!
-        otpStore.delete(email.toLowerCase()); // Consume OTP
-        return res.json(user);
+    if (Date.now() > storedOtpData.expiresAt) {
+      otpStore.delete(email.toLowerCase());
+      return res.status(401).json({ error: "OTP expired" });
     }
 
-    // SCENARIO 2: Password Verification (Step 1)
-    if (password) {
-        // Simple password check (in production, use bcrypt)
-        if (user.password !== password) {
-             return res.status(401).json({ error: "Invalid password" });
-        }
+    if (storedOtpData.otp !== otp) {
+      return res.status(401).json({ error: "Invalid OTP" });
+    }
 
-        // Check if user needs onboarding (First login)
-        // If NO onboarding needed, return User directly (Skip OTP)
-        if (!user.needsOnboarding) {
-             return res.json(user);
-        }
+    // OTP Valid!
+    otpStore.delete(email.toLowerCase()); // Consume OTP
+    return res.json(user);
+  }
 
-        // If Onboarding NEEDED -> Generate OTP
-        const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-        const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
+  // SCENARIO 2: Password Verification (Step 1)
+  if (password) {
+    // Determine if password in DB is a bcrypt hash
+    const isHashed = user.password && user.password.startsWith('$2a$');
+    let isMatch = false;
 
-        otpStore.set(email.toLowerCase(), { otp: generatedOtp, expiresAt });
+    if (isHashed) {
+      isMatch = await bcrypt.compare(password, user.password);
+    } else {
+      isMatch = user.password === password;
+    }
 
-        console.log(`\n=== OTP GENERATED ===\nUser: ${email}\nOTP: ${generatedOtp}\n=====================\n`);
+    if (!isMatch) {
+      return res.status(401).json({ error: "Invalid password" });
+    }
 
-        // Send email via Resend
-        try {
-            await resend.emails.send({
-                from: process.env.SENDER_EMAIL || 'onboarding@resend.dev',
-                to: email,
-                subject: 'Your StackleVest Login Code',
-                html: `
+    // Check if user needs onboarding (First login)
+    // If NO onboarding needed, return User directly (Skip OTP)
+    if (!user.needsOnboarding) {
+      return res.json(user);
+    }
+
+    // If Onboarding NEEDED -> Generate OTP
+    const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
+
+    otpStore.set(email.toLowerCase(), { otp: generatedOtp, expiresAt });
+
+    console.log(`\n=== OTP GENERATED ===\nUser: ${email}\nOTP: ${generatedOtp}\n=====================\n`);
+
+    // Send email via Resend
+    try {
+      await resend.emails.send({
+        from: process.env.SENDER_EMAIL || 'onboarding@resend.dev',
+        to: email,
+        subject: 'Your StackleVest Login Code',
+        html: `
                     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
                         <h2>Login Verification</h2>
                         <p>Your one-time password is:</p>
@@ -343,34 +358,65 @@ app.post('/api/login', async (req, res) => {
                         <p>This code will expire in 5 minutes.</p>
                     </div>
                 `
-            });
-            console.log(`OTP email sent to ${email}`);
-            return res.json({ requiresOtp: true, message: "OTP sent to email" });
-        } catch (error) {
-            console.error('Error sending OTP email:', error);
-            // In dev/demo, we proceed even if email fails because we logged OTP to console
-            return res.json({ requiresOtp: true, message: "OTP generated (check console)" });
-        }
+      });
+      console.log(`OTP email sent to ${email}`);
+      return res.json({ requiresOtp: true, message: "OTP sent to email" });
+    } catch (error) {
+      console.error('Error sending OTP email:', error);
+      // In dev/demo, we proceed even if email fails because we logged OTP to console
+      return res.json({ requiresOtp: true, message: "OTP generated (check console)" });
     }
+  }
 
-    res.status(400).json({ error: "Missing credentials" });
+  res.status(400).json({ error: "Missing credentials" });
 });
 // -----------------------------------
 
+const jwt = require('jsonwebtoken');
+
 // Middleware for Socket.IO Authentication & Role Assignment
 io.use((socket, next) => {
+  const token = socket.handshake.auth.token;
+  const emailAuth = socket.handshake.auth.email;
+
+  console.log(`[Socket] Connection attempt. Token: ${token ? 'Present' : 'Missing'}, Email: ${emailAuth || 'Missing'}`);
+
+  // 1. JWT Authentication (New Flow)
+  if (token) {
+    jwt.verify(token, process.env.JWT_SECRET || 'stacklevest-secret-2025', (err, decoded) => {
+      if (err) {
+        console.error("JWT Verification failed:", err.message);
+        return next(new Error("Authentication error: Invalid Token"));
+      }
+
+      // Refresh users from DB to ensure latest data
+      db = readDB();
+      users = db.users;
+
+      const user = users.find(u => u.id === decoded.id);
+      if (!user) {
+        return next(new Error("Authentication error: User not found"));
+      }
+
+      socket.user = user;
+      next();
+    });
+    return;
+  }
+
+  // 2. Email Authentication (Legacy / Dev Flow)
   const userEmail = socket.handshake.auth.email;
-  
+
   if (!userEmail) {
-    return next(new Error("Authentication error: No email provided"));
+    return next(new Error("Authentication error: No authentication provided"));
   }
 
   // Refresh users from DB to ensure latest data
   db = readDB();
   users = db.users;
-  
+
   const user = users.find(u => u.email.toLowerCase() === userEmail.toLowerCase());
-  
+
   if (!user) {
     return next(new Error("Authentication error: User not found"));
   }
@@ -385,15 +431,15 @@ io.on("connection", (socket) => {
 
   // Send initial state
   const sendState = () => {
-      socket.emit("history", messageHistory);
-      socket.emit("channels", channels);
-      socket.emit("users", users);
-      socket.emit("tasks", tasks);
+    socket.emit("history", messageHistory);
+    socket.emit("channels", channels);
+    socket.emit("users", users);
+    socket.emit("tasks", tasks);
   };
   sendState();
 
   socket.on("request_refresh", () => {
-      sendState();
+    sendState();
   });
 
   socket.on("request_history", (payload) => {
@@ -405,8 +451,8 @@ io.on("connection", (socket) => {
       // In a real app, DM history is between two specific users
       // For now, we'll assume dmId is the "other" user's ID
       // and we want messages where (sender=me AND dmId=other) OR (sender=other AND dmId=me)
-      history = messageHistory.filter(m => 
-        (m.senderId === socket.user.id && m.dmId === dmId) || 
+      history = messageHistory.filter(m =>
+        (m.senderId === socket.user.id && m.dmId === dmId) ||
         (m.senderId === dmId && m.dmId === socket.user.id)
       );
     }
@@ -427,15 +473,15 @@ io.on("connection", (socket) => {
         channelId: payload.channelId,
         dmId: payload.dmId,
         user: {
-            id: socket.user.id,
-            name: socket.user.name,
-            avatar: socket.user.avatar
+          id: socket.user.id,
+          name: socket.user.name,
+          avatar: socket.user.avatar
         }
       };
 
       messageHistory.push(msg);
       saveState(); // Persist to DB
-      
+
       // In a real app, we would filter who receives this based on channel/DM
       io.emit("message", msg);
     } catch (e) {
@@ -451,7 +497,7 @@ io.on("connection", (socket) => {
       if (!msg) return;
 
       if (!msg.reactions) msg.reactions = [];
-      
+
       const reactionIndex = msg.reactions.findIndex(r => r.emoji === emoji);
       const userId = socket.user.id;
 
@@ -485,10 +531,10 @@ io.on("connection", (socket) => {
     try {
       const { messageId } = payload;
       const index = messageHistory.findIndex(m => m.id === messageId);
-      
+
       if (index !== -1) {
         const msg = messageHistory[index];
-        
+
         // Only allow sender or admin to delete
         if (msg.senderId === socket.user.id || socket.user.role?.toLowerCase() === 'admin') {
           messageHistory.splice(index, 1);
@@ -512,7 +558,7 @@ io.on("connection", (socket) => {
       if (userIndex !== -1) {
         db.users[userIndex].status = status;
         saveState();
-        
+
         // Broadcast to all users
         io.emit("user_status_change", { userId: socket.user.id, status });
       }
@@ -567,19 +613,19 @@ io.on("connection", (socket) => {
     try {
       const taskId = typeof payload === 'string' ? payload : payload.taskId;
       const task = tasks.find(t => t.id === taskId);
-      
-      if (task) {
-         // Allow creator to delete, or admin, or if task has no creatorId (legacy tasks)
-         const isCreator = task.creatorId && task.creatorId === socket.user.id;
-         const isAdmin = socket.user.role?.toLowerCase() === 'admin';
-         const isLegacyTask = !task.creatorId;
 
-         if (isCreator || isAdmin || isLegacyTask) {
-           tasks = tasks.filter(t => t.id !== taskId);
-           saveState();
-           io.emit("task_deleted", taskId);
-         }
-       }
+      if (task) {
+        // Allow creator to delete, or admin, or if task has no creatorId (legacy tasks)
+        const isCreator = task.creatorId && task.creatorId === socket.user.id;
+        const isAdmin = socket.user.role?.toLowerCase() === 'admin';
+        const isLegacyTask = !task.creatorId;
+
+        if (isCreator || isAdmin || isLegacyTask) {
+          tasks = tasks.filter(t => t.id !== taskId);
+          saveState();
+          io.emit("task_deleted", taskId);
+        }
+      }
     } catch (e) {
       console.error("Error deleting task:", e);
     }
@@ -631,40 +677,40 @@ io.on("connection", (socket) => {
 
   // Typing Indicators
   socket.on("typing_start", (payload) => {
-    socket.broadcast.emit("typing_start", { 
-      userId: socket.user.id, 
+    socket.broadcast.emit("typing_start", {
+      userId: socket.user.id,
       channelId: payload.channelId,
-      dmId: payload.dmId 
+      dmId: payload.dmId
     });
   });
 
   socket.on("typing_stop", (payload) => {
-    socket.broadcast.emit("typing_stop", { 
-      userId: socket.user.id, 
+    socket.broadcast.emit("typing_stop", {
+      userId: socket.user.id,
       channelId: payload.channelId,
-      dmId: payload.dmId 
+      dmId: payload.dmId
     });
   });
 });
 
 app.post('/api/auth/change-password', (req, res) => {
-    const { email, newPassword } = req.body;
-    
-    db = readDB();
-    users = db.users;
-    
-    const index = users.findIndex(u => u.email.toLowerCase() === email.toLowerCase());
-    
-    if (index !== -1) {
-        users[index].password = newPassword;
-        users[index].needsOnboarding = false; // Turn off onboarding
-        saveState();
-        
-        // Return updated user
-        res.json(users[index]);
-    } else {
-        res.status(404).json({ error: "User not found" });
-    }
+  const { email, newPassword } = req.body;
+
+  db = readDB();
+  users = db.users;
+
+  const index = users.findIndex(u => u.email.toLowerCase() === email.toLowerCase());
+
+  if (index !== -1) {
+    users[index].password = newPassword;
+    users[index].needsOnboarding = false; // Turn off onboarding
+    saveState();
+
+    // Return updated user
+    res.json(users[index]);
+  } else {
+    res.status(404).json({ error: "User not found" });
+  }
 });
 
 const PORT = process.env.PORT || 8080;

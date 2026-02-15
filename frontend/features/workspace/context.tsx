@@ -54,40 +54,41 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (session?.user?.email) {
-        socket.connect({ email: session.user.email });
-        
-        // Use session data to set currentUser temporarily until full user list sync
-        if (session.user) {
-             const sessionUser: User = {
-                id: (session.user as any).id || "unknown",
-                name: session.user.name || "Unknown",
-                email: session.user.email,
-                avatar: session.user.image || undefined,
-                status: "online",
-                // Normalize role to lowercase and provide fallback for David
-                role: (session.user.email === 'david@stacklevest.com' || session.user.email === 'abutankokingdavid@stacklevest.com') 
-                    ? 'admin' 
-                    : (((session.user as any).role || "staff").toLowerCase() as UserRole),
-                needsOnboarding: (session.user as any).needsOnboarding,
-                jobTitle: (session.user as any).jobTitle,
-                reportingManager: (session.user as any).reportingManager,
-                staffNumber: (session.user as any).staffNumber,
-                department: (session.user as any).department
-            };
-            setState(prev => ({ ...prev, currentUser: sessionUser }));
-        }
+      const token = (session.user as any).accessToken;
+      socket.connect({ email: session.user.email, token });
 
-        // Request latest state
-        socket.emit("request_refresh", {});
+      // Use session data to set currentUser temporarily until full user list sync
+      if (session.user) {
+        const sessionUser: User = {
+          id: (session.user as any).id || "unknown",
+          name: session.user.name || "Unknown",
+          email: session.user.email,
+          avatar: session.user.image || undefined,
+          status: "online",
+          // Normalize role to lowercase and provide fallback for David
+          role: (session.user.email === 'david@stacklevest.com' || session.user.email === 'abutankokingdavid@stacklevest.com')
+            ? 'admin'
+            : (((session.user as any).role || "staff").toLowerCase() as UserRole),
+          needsOnboarding: (session.user as any).needsOnboarding,
+          jobTitle: (session.user as any).jobTitle,
+          reportingManager: (session.user as any).reportingManager,
+          staffNumber: (session.user as any).staffNumber,
+          department: (session.user as any).department
+        };
+        setState(prev => ({ ...prev, currentUser: sessionUser }));
+      }
+
+      // Request latest state
+      socket.emit("request_refresh", {});
     }
 
     const unsubscribe = socket.subscribe((messageData: unknown) => {
       const data = messageData as { type: string; payload: any };
-      
+
       if (data.type === 'connect') {
-          setIsConnected(true);
+        setIsConnected(true);
       } else if (data.type === 'disconnect') {
-          setIsConnected(false);
+        setIsConnected(false);
       } else if (data.type === 'message') {
         const message = data.payload as Message;
         setState((prev) => {
@@ -111,7 +112,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
             });
 
             if (message.channelId && !isCurrentChannel) {
-              updatedChannels = prev.channels.map(c => 
+              updatedChannels = prev.channels.map(c =>
                 c.id === message.channelId ? { ...c, unreadCount: (c.unreadCount || 0) + 1 } : c
               );
             } else if (message.dmId && !isCurrentDm) {
@@ -131,7 +132,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
                   ];
                 }
               } else {
-                updatedDms = prev.dms.map(d => 
+                updatedDms = prev.dms.map(d =>
                   d.id === message.dmId ? { ...d, unreadCount: (d.unreadCount || 0) + 1, lastMessage: message.content } : d
                 );
               }
@@ -148,21 +149,21 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
             // If from self and DM, ensure DM exists in list
             const existingDm = prev.dms.find(d => d.id === message.dmId);
             if (!existingDm) {
-                // For self messages, dmId is usually the recipient ID
-                const recipientUser = prev.users.find(u => u.id === message.dmId);
-                if (recipientUser) {
-                  updatedDms = [
-                    ...prev.dms,
-                    {
-                      id: message.dmId!,
-                      user: recipientUser,
-                      unreadCount: 0,
-                      lastMessage: message.content
-                    }
-                  ];
-                }
+              // For self messages, dmId is usually the recipient ID
+              const recipientUser = prev.users.find(u => u.id === message.dmId);
+              if (recipientUser) {
+                updatedDms = [
+                  ...prev.dms,
+                  {
+                    id: message.dmId!,
+                    user: recipientUser,
+                    unreadCount: 0,
+                    lastMessage: message.content
+                  }
+                ];
+              }
             } else {
-              updatedDms = prev.dms.map(d => 
+              updatedDms = prev.dms.map(d =>
                 d.id === message.dmId ? { ...d, lastMessage: message.content } : d
               );
             }
@@ -176,10 +177,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           };
         });
       } else if (data.type === 'message_updated') {
-         setState((prev) => ({
-             ...prev,
-             messages: prev.messages.map(m => m.id === data.payload.id ? data.payload : m)
-         }));
+        setState((prev) => ({
+          ...prev,
+          messages: prev.messages.map(m => m.id === data.payload.id ? data.payload : m)
+        }));
       } else if (data.type === 'refresh') {
         // Handle refresh event from backend
         const { type, payload } = data.payload;
@@ -196,82 +197,82 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           }));
         }
       } else if (data.type === 'message_deleted') {
-         setState((prev) => ({
-             ...prev,
-             messages: prev.messages.filter(m => m.id !== data.payload.messageId)
-         }));
+        setState((prev) => ({
+          ...prev,
+          messages: prev.messages.filter(m => m.id !== data.payload.messageId)
+        }));
       } else if (data.type === 'history') {
-         setState((prev) => ({
-             ...prev,
-             messages: [...prev.messages.filter(m => {
-                // Keep messages that aren't in the new history payload to avoid duplicates
-                // and keep messages from other channels/DMs
-                const inHistory = (data.payload as Message[]).some(newMsg => newMsg.id === m.id);
-                return !inHistory;
-             }), ...(data.payload as Message[])]
-         }));
+        setState((prev) => ({
+          ...prev,
+          messages: [...prev.messages.filter(m => {
+            // Keep messages that aren't in the new history payload to avoid duplicates
+            // and keep messages from other channels/DMs
+            const inHistory = (data.payload as Message[]).some(newMsg => newMsg.id === m.id);
+            return !inHistory;
+          }), ...(data.payload as Message[])]
+        }));
       } else if (data.type === 'channels') {
-         setState((prev) => {
-             const channels = data.payload as Channel[];
-             // Set first channel as active if none selected and we have channels
-             const newActiveId = prev.activeChannelId || (channels.length > 0 ? channels[0].id : "");
-             
-             return {
-                ...prev,
-                channels: channels,
-                activeChannelId: newActiveId
-             };
-         });
+        setState((prev) => {
+          const channels = data.payload as Channel[];
+          // Set first channel as active if none selected and we have channels
+          const newActiveId = prev.activeChannelId || (channels.length > 0 ? channels[0].id : "");
+
+          return {
+            ...prev,
+            channels: channels,
+            activeChannelId: newActiveId
+          };
+        });
       } else if (data.type === 'channel_created') {
-         setState((prev) => ({
-             ...prev,
-             channels: [...prev.channels, data.payload]
-         }));
+        setState((prev) => ({
+          ...prev,
+          channels: [...prev.channels, data.payload]
+        }));
       } else if (data.type === 'channel_deleted') {
-         setState((prev) => {
-             const newChannels = prev.channels.filter(c => c.id !== data.payload.channelId);
-             const wasActive = prev.activeView === 'channel' && prev.activeChannelId === data.payload.channelId;
-             
-             return {
-                 ...prev,
-                 channels: newChannels,
-                 activeChannelId: wasActive ? (newChannels[0]?.id || "") : prev.activeChannelId,
-                 activeView: wasActive && newChannels.length === 0 ? "tasks" : prev.activeView
-             };
-         });
+        setState((prev) => {
+          const newChannels = prev.channels.filter(c => c.id !== data.payload.channelId);
+          const wasActive = prev.activeView === 'channel' && prev.activeChannelId === data.payload.channelId;
+
+          return {
+            ...prev,
+            channels: newChannels,
+            activeChannelId: wasActive ? (newChannels[0]?.id || "") : prev.activeChannelId,
+            activeView: wasActive && newChannels.length === 0 ? "tasks" : prev.activeView
+          };
+        });
       } else if (data.type === 'users') {
-         setState((prev) => {
-             const updatedUsers = (data.payload as User[]).map((u: User) => ({
-                 ...u,
-                 role: (u.role || "staff").toLowerCase() as UserRole
-             }));
-             
-             // Sync currentUser with the latest data if they exist in the list
-             let updatedCurrentUser = prev.currentUser;
-             if (prev.currentUser?.email) {
-                 // Try to match by Email (more reliable than ID if session ID is missing)
-                 const foundUser = updatedUsers.find(u => u.email.toLowerCase() === prev.currentUser.email.toLowerCase());
-                 if (foundUser) {
-                     updatedCurrentUser = { ...prev.currentUser, ...foundUser };
-                 }
-             } else if (prev.currentUser?.id) {
-                 // Fallback to ID
-                 const foundUser = updatedUsers.find(u => u.id === prev.currentUser.id);
-                 if (foundUser) {
-                     updatedCurrentUser = { ...prev.currentUser, ...foundUser };
-                 }
-             }
-             
-             return {
-                 ...prev,
-                 users: updatedUsers,
-                 currentUser: updatedCurrentUser
-             };
-         });
+        setState((prev) => {
+          const updatedUsers = (data.payload as User[]).map((u: User) => ({
+            ...u,
+            role: (u.role || "staff").toLowerCase() as UserRole
+          }));
+
+          // Sync currentUser with the latest data if they exist in the list
+          let updatedCurrentUser = prev.currentUser;
+          if (prev.currentUser?.email) {
+            // Try to match by Email (more reliable than ID if session ID is missing)
+            const foundUser = updatedUsers.find(u => u.email.toLowerCase() === prev.currentUser.email.toLowerCase());
+            if (foundUser) {
+              updatedCurrentUser = { ...prev.currentUser, ...foundUser };
+            }
+          } else if (prev.currentUser?.id) {
+            // Fallback to ID
+            const foundUser = updatedUsers.find(u => u.id === prev.currentUser.id);
+            if (foundUser) {
+              updatedCurrentUser = { ...prev.currentUser, ...foundUser };
+            }
+          }
+
+          return {
+            ...prev,
+            users: updatedUsers,
+            currentUser: updatedCurrentUser
+          };
+        });
       } else if (data.type === 'tasks') {
         setState((prev) => ({
-             ...prev,
-             tasks: data.payload
+          ...prev,
+          tasks: data.payload
         }));
       } else if (data.type === 'task_created') {
         const task = data.payload as Task;
@@ -281,51 +282,51 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           type: "info"
         });
         setState((prev) => ({
-             ...prev,
-             tasks: [...prev.tasks, data.payload]
+          ...prev,
+          tasks: [...prev.tasks, data.payload]
         }));
       } else if (data.type === 'task_updated') {
         const task = data.payload as Task;
         const oldTask = state.tasks.find(t => t.id === task.id);
         if (oldTask && oldTask.status !== task.status) {
-           showNotification({
-             title: "Task Updated",
-             message: `Task "${task.title}" is now ${task.status}`,
-             type: "info"
-           });
+          showNotification({
+            title: "Task Updated",
+            message: `Task "${task.title}" is now ${task.status}`,
+            type: "info"
+          });
         }
         setState((prev) => ({
-             ...prev,
-             tasks: prev.tasks.map(t => t.id === task.id ? task : t)
+          ...prev,
+          tasks: prev.tasks.map(t => t.id === task.id ? task : t)
         }));
       } else if (data.type === 'task_deleted') {
         setState((prev) => ({
-             ...prev,
-             tasks: prev.tasks.filter(t => t.id !== data.payload)
+          ...prev,
+          tasks: prev.tasks.filter(t => t.id !== data.payload)
         }));
       } else if (data.type === 'user_status_change') {
-         const { userId, status } = data.payload;
-         setState(prev => ({
-             ...prev,
-             users: prev.users.map(u => u.id === userId ? { ...u, status } : u),
-             // Update DMs as well
-             dms: prev.dms.map(dm => dm.user.id === userId ? { ...dm, user: { ...dm.user, status } } : dm)
-         }));
+        const { userId, status } = data.payload;
+        setState(prev => ({
+          ...prev,
+          users: prev.users.map(u => u.id === userId ? { ...u, status } : u),
+          // Update DMs as well
+          dms: prev.dms.map(dm => dm.user.id === userId ? { ...dm, user: { ...dm.user, status } } : dm)
+        }));
       } else if (data.type === 'typing_start') {
         const { userId, channelId, dmId } = data.payload;
         const key = channelId || dmId;
         if (!key) return;
 
         setState(prev => {
-            const currentTypers = prev.typingUsers?.[key] || [];
-            if (currentTypers.includes(userId)) return prev;
-            return {
-                ...prev,
-                typingUsers: {
-                    ...prev.typingUsers,
-                    [key]: [...currentTypers, userId]
-                }
-            };
+          const currentTypers = prev.typingUsers?.[key] || [];
+          if (currentTypers.includes(userId)) return prev;
+          return {
+            ...prev,
+            typingUsers: {
+              ...prev.typingUsers,
+              [key]: [...currentTypers, userId]
+            }
+          };
         });
       } else if (data.type === 'typing_stop') {
         const { userId, channelId, dmId } = data.payload;
@@ -333,14 +334,14 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         if (!key) return;
 
         setState(prev => {
-            const currentTypers = prev.typingUsers?.[key] || [];
-            return {
-                ...prev,
-                typingUsers: {
-                    ...prev.typingUsers,
-                    [key]: currentTypers.filter(id => id !== userId)
-                }
-            };
+          const currentTypers = prev.typingUsers?.[key] || [];
+          return {
+            ...prev,
+            typingUsers: {
+              ...prev.typingUsers,
+              [key]: currentTypers.filter(id => id !== userId)
+            }
+          };
         });
       }
     });
@@ -426,7 +427,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       ...prev,
       notifications: [...prev.notifications, newNotification]
     }));
-    
+
     // Auto remove after 5 seconds
     setTimeout(() => {
       removeNotification(id);
@@ -484,34 +485,34 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   // Add Typing Handlers
   const startTyping = () => {
-    socket.send({ 
-        type: 'typing_start', 
-        payload: { 
-            channelId: state.activeView === "channel" ? state.activeChannelId : undefined,
-            dmId: state.activeView === "dm" ? state.activeDmId : undefined
-        } 
+    socket.send({
+      type: 'typing_start',
+      payload: {
+        channelId: state.activeView === "channel" ? state.activeChannelId : undefined,
+        dmId: state.activeView === "dm" ? state.activeDmId : undefined
+      }
     });
   };
 
   const stopTyping = () => {
-    socket.send({ 
-        type: 'typing_stop', 
-        payload: { 
-            channelId: state.activeView === "channel" ? state.activeChannelId : undefined,
-            dmId: state.activeView === "dm" ? state.activeDmId : undefined
-        } 
+    socket.send({
+      type: 'typing_stop',
+      payload: {
+        channelId: state.activeView === "channel" ? state.activeChannelId : undefined,
+        dmId: state.activeView === "dm" ? state.activeDmId : undefined
+      }
     });
   };
 
   const createChannel = (name: string, description: string = "New channel", type: "public" | "private" = "public") => {
     socket.emit("create_channel", { name, description, type });
   };
-  
+
   const markChannelRead = (channelId: string) => {
-      setState((prev) => ({
-          ...prev,
-          channels: prev.channels.map(c => c.id === channelId ? { ...c, unreadCount: 0 } : c)
-      }));
+    setState((prev) => ({
+      ...prev,
+      channels: prev.channels.map(c => c.id === channelId ? { ...c, unreadCount: 0 } : c)
+    }));
   };
 
   const updateTaskStatus = (taskId: string, newStatus: "todo" | "in_progress" | "done") => {
@@ -520,16 +521,16 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   const createTask = (taskData: Omit<Task, "id" | "creatorId" | "createdAt" | "progress">) => {
     const newTask = {
-        ...taskData,
-        id: Math.random().toString(36).substring(7),
-        creatorId: state.currentUser.id,
-        progress: taskData.status === "done" ? 100 : 0,
-        createdAt: new Date().toISOString()
+      ...taskData,
+      id: Math.random().toString(36).substring(7),
+      creatorId: state.currentUser.id,
+      progress: taskData.status === "done" ? 100 : 0,
+      createdAt: new Date().toISOString()
     };
     socket.emit("create_task", newTask);
     setState(prev => ({
-        ...prev,
-        tasks: [newTask as Task, ...prev.tasks]
+      ...prev,
+      tasks: [newTask as Task, ...prev.tasks]
     }));
   };
 
@@ -567,16 +568,16 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   const updateProfile = async (updates: Partial<User>) => {
     if (!state.currentUser.id) return;
-    
+
     try {
       const response = await fetch(`http://localhost:8082/api/users/${state.currentUser.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates)
       });
-      
+
       if (!response.ok) throw new Error("Failed to update profile");
-      
+
       const updatedUser = await response.json();
       setState(prev => ({
         ...prev,
@@ -607,18 +608,18 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     markChannelRead,
     updateTaskStatus,
     createTask,
-      updateTask,
-      deleteTask,
-      addTaskComment,
-      deleteChannel,
+    updateTask,
+    deleteTask,
+    addTaskComment,
+    deleteChannel,
     deleteMessage,
     toggleReaction,
     updateStatus,
-      updateProfile,
-      showNotification,
-      removeNotification,
-      login,
-      startTyping,
+    updateProfile,
+    showNotification,
+    removeNotification,
+    login,
+    startTyping,
     stopTyping,
     isConnected,
   }), [state, isConnected]);

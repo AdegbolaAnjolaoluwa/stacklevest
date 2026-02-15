@@ -5,6 +5,7 @@ import { SessionProvider } from "next-auth/react";
 import { SplashScreen } from "@/components/ui/splash-screen";
 import { OfflineScreen } from "@/components/offline-screen";
 import { WorkspaceProvider } from "@/features/workspace/context";
+import { ThemeProvider } from "./theme-provider";
 
 export function RootProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
@@ -25,18 +26,25 @@ export function RootProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener("offline", handleOffline);
     };
   }, []);
-  
+
   const handleComplete = () => {
     setIsLoading(false);
   };
 
   return (
-    <SessionProvider>
-      <WorkspaceProvider>
-        {isLoading && <SplashScreen onComplete={handleComplete} />}
-        {isOffline && !isLoading && <OfflineScreen />}
-        {children}
-      </WorkspaceProvider>
-    </SessionProvider>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange
+    >
+      <SessionProvider>
+        <WorkspaceProvider>
+          {isLoading && <SplashScreen onComplete={handleComplete} />}
+          {isOffline && !isLoading && <OfflineScreen />}
+          {children}
+        </WorkspaceProvider>
+      </SessionProvider>
+    </ThemeProvider>
   );
 }

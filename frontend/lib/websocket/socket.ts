@@ -11,15 +11,16 @@ export class SocketClient {
     this.url = url;
   }
 
-  connect(auth?: { email: string }) {
+  connect(auth?: { email: string; token?: string }) {
     if (this.socket?.connected) {
-        // If auth provided and differs from current, disconnect and reconnect
-        // Note: io.socket.auth isn't directly accessible in all versions, 
-        // but we can just disconnect if we want to ensure new auth is used.
-        // For now, we'll assume if connect is called, we might want to ensure connection.
-        return;
+      // If auth provided and differs from current, disconnect and reconnect
+      // Note: io.socket.auth isn't directly accessible in all versions, 
+      // but we can just disconnect if we want to ensure new auth is used.
+      // For now, we'll assume if connect is called, we might want to ensure connection.
+      return;
     }
 
+    console.log("Socket.IO connecting with auth:", auth);
     this.socket = io(this.url, {
       auth: auth,
       transports: ["websocket", "polling"],
@@ -37,9 +38,9 @@ export class SocketClient {
     // To maintain compatibility with our previous "subscribe to everything" model,
     // we might need to listen to specific events we know about.
     // But our backend sends "message", "history", "channels", "channel_created", "channel_deleted".
-    
+
     const events = ["connect", "disconnect", "message", "history", "channels", "users", "tasks", "task_created", "task_updated", "task_deleted", "channel_created", "channel_deleted", "error", "user_status_change", "typing_start", "typing_stop"];
-    
+
     events.forEach(event => {
       this.socket?.on(event, (payload) => {
         // Wrap it in the { type, payload } structure our app expects

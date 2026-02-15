@@ -7,5 +7,6 @@ declare module "next-auth" {
       role?: string;
       needsOnboarding?: boolean;
     } & DefaultSession["user"]
+    accessToken?: string;
   }
 }
