@@ -44,7 +44,7 @@ import { Logo } from "@/components/logo";
 import { GlobalSearch } from "@/components/layout/GlobalSearch";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
-export function Sidebar() {
+export function Sidebar({ onClose }: { onClose?: () => void }) {
   const {
     channels,
     dms,
@@ -78,6 +78,7 @@ export function Sidebar() {
     setIsNewMessageOpen(false);
     setSearchQuery("");
     setActiveView("dm");
+    onClose?.();
   };
 
   const handleSelectChannel = (channel: any) => {
@@ -85,6 +86,7 @@ export function Sidebar() {
     setIsNewMessageOpen(false);
     setSearchQuery("");
     setActiveView("channel");
+    onClose?.();
   };
 
   const filteredUsers = users.filter(u =>
@@ -169,7 +171,10 @@ export function Sidebar() {
           {/* Task Hub Section */}
           <div className="space-y-1">
             <button
-              onClick={() => setActiveView("tasks")}
+              onClick={() => {
+                setActiveView("tasks");
+                onClose?.();
+              }}
               className={cn(
                 "w-full px-3 py-2 flex items-center justify-between rounded-lg group transition-all duration-200 text-sm font-medium",
                 activeView === "tasks"

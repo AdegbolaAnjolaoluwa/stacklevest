@@ -51,6 +51,7 @@ export interface Message {
   senderId: string;
   channelId?: string; // if in channel
   dmId?: string; // if in DM
+  parentId?: string; // if child of a thread
   timestamp: string;
   attachments?: Attachment[];
   reactions?: Reaction[];

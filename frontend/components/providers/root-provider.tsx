@@ -6,6 +6,7 @@ import { SplashScreen } from "@/components/ui/splash-screen";
 import { OfflineScreen } from "@/components/offline-screen";
 import { WorkspaceProvider } from "@/features/workspace/context";
 import { ThemeProvider } from "./theme-provider";
+import { SessionGuard } from "./session-guard";
 
 export function RootProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
@@ -34,16 +35,19 @@ export function RootProvider({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider
       attribute="class"
-      defaultTheme="system"
-      enableSystem
+      defaultTheme="light"
+      enableSystem={false}
+      storageKey="stacklevest-theme-v2"
       disableTransitionOnChange
     >
       <SessionProvider>
-        <WorkspaceProvider>
-          {isLoading && <SplashScreen onComplete={handleComplete} />}
-          {isOffline && !isLoading && <OfflineScreen />}
-          {children}
-        </WorkspaceProvider>
+        <SessionGuard>
+          <WorkspaceProvider>
+            {isLoading && <SplashScreen onComplete={handleComplete} />}
+            {isOffline && !isLoading && <OfflineScreen />}
+            {children}
+          </WorkspaceProvider>
+        </SessionGuard>
       </SessionProvider>
     </ThemeProvider>
   );

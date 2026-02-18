@@ -6,6 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stacklevest/backend/internal/config"
+	"github.com/stacklevest/backend/internal/domain"
 )
 
 func AuthMiddleware(cfg *config.Config) fiber.Handler {
@@ -47,17 +48,25 @@ func AuthMiddleware(cfg *config.Config) fiber.Handler {
 }
 
 func AdminGuard(c *fiber.Ctx) error {
-	role, ok := c.Locals("role").(string)
-	if !ok {
-		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Role not found"})
+	return RoleGuard(domain.RoleAdmin)(c)
+}
+
+func RoleGuard(allowedRoles ...string) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		role, ok := c.Locals("role").(string)
+		if !ok {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Role not found"})
+		}
+
+		role = strings.ToLower(role)
+		for _, allowed := range allowedRoles {
+			if role == strings.ToLower(allowed) {
+				return c.Next()
+			}
+		}
+
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"error": "Insufficient privileges",
+		})
 	}
-
-	// Super Admin Logic (David) - although "admin" role check should suffice
-	// If specific override needed: userEmail := c.Locals("email").(string)
-
-	if strings.ToLower(role) != "admin" {
-		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Requires Admin privileges"})
-	}
-
-	return c.Next()
 }

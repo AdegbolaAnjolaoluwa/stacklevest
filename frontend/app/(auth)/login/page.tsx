@@ -19,12 +19,12 @@ export default function LoginPage() {
   const [requiresOtp, setRequiresOtp] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const getApiUrl = () => {
     if (typeof window !== 'undefined') {
-      return `http://${window.location.hostname}:8082`;
+      return `http://${window.location.hostname}:8080`;
     }
-    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8082';
+    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
   };
 
   const handleCredentialsSubmit = async (e: React.FormEvent) => {
@@ -114,58 +114,58 @@ export default function LoginPage() {
             <form className="space-y-6" onSubmit={handleCredentialsSubmit}>
               <div className="space-y-2">
                 <Label htmlFor="email">Work Email</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
+                <Input
+                  id="email"
+                  type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@stacklevest.com" 
+                  placeholder="name@stacklevest.com"
                   icon={<Mail className="w-4 h-4" />}
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input 
-                  id="password" 
-                  type="password" 
+                <Input
+                  id="password"
+                  type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password" 
+                  placeholder="Enter your password"
                   icon={<Lock className="w-4 h-4" />}
                 />
               </div>
-        {requiresOtp && (
-          <div className="space-y-2">
-            <Label htmlFor="otp">One-Time Password</Label>
-            <Input 
-              id="otp" 
-              type="text" 
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              placeholder="6-digit code" 
-            />
-          </div>
-        )}
+              {requiresOtp && (
+                <div className="space-y-2">
+                  <Label htmlFor="otp">One-Time Password</Label>
+                  <Input
+                    id="otp"
+                    type="text"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
+                    placeholder="6-digit code"
+                  />
+                </div>
+              )}
 
-        {error && <p className="text-sm text-red-500 font-medium">{error}</p>}
+              {error && <p className="text-sm text-red-500 font-medium">{error}</p>}
 
-        <Button className="w-full" size="lg" disabled={isLoading}>
-          {isLoading ? "Loading..." : requiresOtp ? "Verify & Login" : "Login"}
-        </Button>
+              <Button className="w-full" size="lg" disabled={isLoading}>
+                {isLoading ? "Loading..." : requiresOtp ? "Verify & Login" : "Login"}
+              </Button>
             </form>
 
             <div className="pt-6 border-t border-slate-100">
               <p className="text-xs text-slate-500 mb-3 font-medium uppercase tracking-wider">Demo Accounts</p>
               <div className="grid grid-cols-2 gap-2">
-                <button 
+                <button
                   type="button"
-                  onClick={() => { 
+                  onClick={() => {
                     const e = "abutankokingdavid@stacklevest.com";
                     const p = "password123";
-                    setEmail(e); 
-                    setPassword(p); 
-                    setError(""); 
+                    setEmail(e);
+                    setPassword(p);
+                    setError("");
                     attemptLogin(e, p);
                   }}
                   className="text-left text-xs p-2 rounded hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-colors"
@@ -173,14 +173,14 @@ export default function LoginPage() {
                   <div className="font-semibold text-slate-900">David (Admin)</div>
                   <div className="text-slate-500">Full access</div>
                 </button>
-                <button 
+                <button
                   type="button"
-                  onClick={() => { 
+                  onClick={() => {
                     const e = "Anjeesax@gmail.com";
                     const p = "Anjeesax2007";
-                    setEmail(e); 
-                    setPassword(p); 
-                    setError(""); 
+                    setEmail(e);
+                    setPassword(p);
+                    setError("");
                     attemptLogin(e, p);
                   }}
                   className="text-left text-xs p-2 rounded hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-colors"
@@ -192,11 +192,11 @@ export default function LoginPage() {
             </div>
 
             <div className="flex items-center justify-between pt-8 text-xs text-slate-400">
-               <span>Protected by enterprise-grade security.</span>
-               <div className="space-x-4">
-                 <Link href="/privacy" className="hover:underline">Privacy Policy</Link>
-                 <Link href="#" className="hover:underline">Terms of Service</Link>
-               </div>
+              <span>Protected by enterprise-grade security.</span>
+              <div className="space-x-4">
+                <Link href="/privacy" className="hover:underline">Privacy Policy</Link>
+                <Link href="#" className="hover:underline">Terms of Service</Link>
+              </div>
             </div>
           </div>
         </div>

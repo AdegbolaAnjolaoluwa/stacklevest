@@ -30,7 +30,8 @@ import {
     CheckCircle2,
     SquarePen,
     Video,
-    Phone
+    Phone,
+    MessageSquare
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,6 +85,8 @@ export default function WorkspacePage() {
     } = useWorkspace();
 
     const [inputValue, setInputValue] = useState("");
+    const [replyToMessageId, setReplyToMessageId] = useState<string | null>(null);
+    const [viewingThreadId, setViewingThreadId] = useState<string | null>(null);
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -141,6 +144,25 @@ export default function WorkspacePage() {
         }
     }, [selectedTaskId, tasks]);
 
+    // Handle mobile responsiveness for sidebars
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth < 1280) {
+                setIsChannelTasksOpen(false);
+                setIsSharedTasksOpen(false);
+            } else {
+                setIsChannelTasksOpen(true);
+                setIsSharedTasksOpen(true);
+            }
+        };
+
+        // Initial check
+        handleResize();
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     useEffect(() => {
         if (highlightedMessageId) {
             const element = document.getElementById(`message-${highlightedMessageId}`);
@@ -179,10 +201,13 @@ export default function WorkspacePage() {
     const activeDm = dms.find(d => d.id === activeDmId);
 
     const currentMessages = messages.filter(m => {
-        if (activeView === "channel") return m.channelId === activeChannelId;
-        if (activeView === "dm") return m.dmId === activeDmId;
+        if (activeView === "channel") return m.channelId === activeChannelId && !m.parentId;
+        if (activeView === "dm") return m.dmId === activeDmId && !m.parentId;
         return false;
     });
+
+    const threadMessages = messages.filter(m => m.parentId === viewingThreadId);
+    const parentMessage = messages.find(m => m.id === viewingThreadId);
 
     const handleFileUpload = async (files: File[]) => {
         setIsUploading(true);
@@ -214,10 +239,11 @@ export default function WorkspacePage() {
 
         // In a real app, sendMessage would accept an object with attachments
         // For now we'll assume the context supports it or we'll update it
-        sendMessage(inputValue, messageAttachments);
+        sendMessage(inputValue, messageAttachments, replyToMessageId || undefined);
 
         setInputValue("");
         setMessageAttachments([]);
+        setReplyToMessageId(null);
     };
 
     const insertFormatting = (prefix: string, suffix: string = prefix) => {
@@ -311,10 +337,10 @@ export default function WorkspacePage() {
 
         if (activeView === "channel" && activeChannel) {
             return (
-                <div className="flex items-center gap-2">
-                    <Hash className="w-5 h-5 text-slate-500" />
-                    <h2 className="font-bold text-slate-900 font-fredoka">{activeChannel.name}</h2>
-                    <span className="text-sm text-slate-400 border-l border-slate-200 pl-2 ml-2">
+                <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+                    <Hash className="w-5 h-5 text-slate-500 flex-shrink-0" />
+                    <h2 className="font-bold text-slate-900 font-fredoka truncate">{activeChannel.name}</h2>
+                    <span className="hidden sm:block text-sm text-slate-400 border-l border-slate-200 pl-2 ml-2 truncate">
                         {activeChannel.description}
                     </span>
                 </div>
@@ -683,7 +709,7 @@ export default function WorkspacePage() {
                             <div className="flex items-center gap-2">
                                 {activeView === "dm" ? (
                                     <>
-                                        <div className="flex items-center gap-1 mr-2 px-2 py-1 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100/50 dark:border-slate-700/50 shadow-sm">
+                                        <div className="hidden sm:flex items-center gap-1 mr-2 px-2 py-1 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100/50 dark:border-slate-700/50 shadow-sm">
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
@@ -712,6 +738,27 @@ export default function WorkspacePage() {
                                                 <Info className="w-4 h-4" />
                                             </Button>
                                         </div>
+                                        {/* Mobile Header Menu */}
+                                        <div className="sm:hidden mr-2">
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-500 rounded-xl hover:bg-slate-50">
+                                                        <MoreHorizontal className="w-5 h-5" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-48">
+                                                    <DropdownMenuItem onClick={() => showNotification({ title: "Feature Pending", message: "Video call feature coming soon!", type: "info" })}>
+                                                        <Video className="w-4 h-4 mr-2" /> Video Call
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => showNotification({ title: "Feature Pending", message: "Audio call feature coming soon!", type: "info" })}>
+                                                        <Phone className="w-4 h-4 mr-2" /> Voice Call
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => showNotification({ title: "Details Pending", message: "Conversation details coming soon!", type: "info" })}>
+                                                        <Info className="w-4 h-4 mr-2" /> View Details
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
                                         <Button
                                             variant="ghost"
                                             size="icon"
@@ -725,7 +772,7 @@ export default function WorkspacePage() {
                                 ) : activeView === "channel" ? (
                                     <>
                                         <div className="flex items-center gap-3">
-                                            <div className="flex -space-x-2 mr-2">
+                                            <div className="hidden sm:flex -space-x-2 mr-2">
                                                 {users.slice(0, 3).map(u => (
                                                     <Avatar key={u.id} className="w-6 h-6 border-2 border-white">
                                                         <AvatarImage src={u.avatar} />
@@ -738,7 +785,7 @@ export default function WorkspacePage() {
                                                     </div>
                                                 )}
                                             </div>
-                                            <div className="flex items-center gap-1 px-2 py-1 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100/50 dark:border-slate-700/50 shadow-sm">
+                                            <div className="hidden md:flex items-center gap-1 px-2 py-1 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100/50 dark:border-slate-700/50 shadow-sm">
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
@@ -758,7 +805,25 @@ export default function WorkspacePage() {
                                                     <Info className="w-4 h-4" />
                                                 </Button>
                                             </div>
-                                            <div className="w-px h-6 bg-slate-200" />
+                                            <div className="hidden md:block w-px h-6 bg-slate-200" />
+                                            {/* Mobile Channel Menu */}
+                                            <div className="md:hidden mr-1">
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-500 rounded-xl hover:bg-slate-50">
+                                                            <MoreHorizontal className="w-5 h-5" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end" className="w-48">
+                                                        <DropdownMenuItem onClick={() => showNotification({ title: "Feature Pending", message: "Channel video feature coming soon!", type: "info" })}>
+                                                            <Video className="w-4 h-4 mr-2" /> Channel Video
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => showNotification({ title: "Details Pending", message: "Channel info coming soon!", type: "info" })}>
+                                                            <Info className="w-4 h-4 mr-2" /> Channel Details
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </div>
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
@@ -913,6 +978,16 @@ export default function WorkspacePage() {
                                                                     {emoji}
                                                                 </button>
                                                             ))}
+                                                            <button
+                                                                onClick={() => {
+                                                                    setReplyToMessageId(msg.id);
+                                                                    setViewingThreadId(msg.id);
+                                                                }}
+                                                                className="w-8 h-8 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-xl transition-all hover:scale-110 active:scale-90"
+                                                                title="Reply in thread"
+                                                            >
+                                                                <MessageSquare className="w-4 h-4" />
+                                                            </button>
                                                             <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1.5" />
                                                             <button
                                                                 onClick={() => {
@@ -1008,48 +1083,50 @@ export default function WorkspacePage() {
                                 <div className="border border-slate-200 dark:border-white/10 rounded-xl shadow-sm focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all bg-white dark:bg-secondary/40 backdrop-blur-sm overflow-hidden">
                                     <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }}>
                                         <div className="flex items-center gap-1 p-2 border-b border-slate-100 dark:border-white/5 bg-slate-50/40 dark:bg-secondary/20 rounded-t-xl group/toolbar">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                type="button"
-                                                className="w-8 h-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/40 transition-all"
-                                                onClick={() => insertFormatting("**")}
-                                                title="Bold"
-                                            >
-                                                <Bold className="w-4 h-4" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                type="button"
-                                                className="w-8 h-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/40 transition-all"
-                                                onClick={() => insertFormatting("_")}
-                                                title="Italic"
-                                            >
-                                                <Italic className="w-4 h-4" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                type="button"
-                                                className="w-8 h-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/40 transition-all"
-                                                onClick={() => insertFormatting("[text](url)")}
-                                                title="Link"
-                                            >
-                                                <LinkIcon className="w-4 h-4" />
-                                            </Button>
-                                            <div className="w-px h-4 bg-slate-200/60 dark:bg-white/10 mx-1" />
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                type="button"
-                                                className="w-8 h-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/40 transition-all"
-                                                onClick={() => insertFormatting("- ")}
-                                                title="Bullet List"
-                                            >
-                                                <ListIcon className="w-4 h-4" />
-                                            </Button>
-                                            <div className="w-px h-4 bg-slate-200/60 dark:bg-white/10 mx-1" />
+                                            <div className="hidden md:flex items-center gap-1">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    type="button"
+                                                    className="w-8 h-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/40 transition-all"
+                                                    onClick={() => insertFormatting("**")}
+                                                    title="Bold"
+                                                >
+                                                    <Bold className="w-4 h-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    type="button"
+                                                    className="w-8 h-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/40 transition-all"
+                                                    onClick={() => insertFormatting("_")}
+                                                    title="Italic"
+                                                >
+                                                    <Italic className="w-4 h-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    type="button"
+                                                    className="w-8 h-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/40 transition-all"
+                                                    onClick={() => insertFormatting("[text](url)")}
+                                                    title="Link"
+                                                >
+                                                    <LinkIcon className="w-4 h-4" />
+                                                </Button>
+                                                <div className="w-px h-4 bg-slate-200/60 dark:bg-white/10 mx-1" />
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    type="button"
+                                                    className="w-8 h-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/40 transition-all"
+                                                    onClick={() => insertFormatting("- ")}
+                                                    title="Bullet List"
+                                                >
+                                                    <ListIcon className="w-4 h-4" />
+                                                </Button>
+                                                <div className="w-px h-4 bg-slate-200/60 dark:bg-white/10 mx-1" />
+                                            </div>
                                             <div className="relative">
                                                 <Button variant="ghost" size="icon" type="button" className="w-8 h-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/40 transition-all" title="Attach Files">
                                                     <Paperclip className="w-4 h-4" />
@@ -1092,6 +1169,23 @@ export default function WorkspacePage() {
                                                     ))}
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
+                                            {/* Reply Indicator */}
+                                            {replyToMessageId && (
+                                                <div className="flex items-center justify-between px-3 py-2 bg-blue-50/50 dark:bg-blue-500/10 border-b border-blue-100 dark:border-blue-500/20">
+                                                    <div className="flex items-center gap-2 overflow-hidden">
+                                                        <MessageSquare className="w-3.5 h-3.5 text-blue-500" />
+                                                        <span className="text-xs text-blue-600 dark:text-blue-400 font-medium truncate">
+                                                            Replying to {messages.find(m => m.id === replyToMessageId)?.user?.name || 'message'}
+                                                        </span>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => setReplyToMessageId(null)}
+                                                        className="p-0.5 hover:bg-blue-100 dark:hover:bg-blue-500/20 rounded text-blue-400 transition-colors"
+                                                    >
+                                                        <X className="w-3.5 h-3.5" />
+                                                    </button>
+                                                </div>
+                                            )}
                                             {/* Typing Indicator */}
                                             {(typingUsers?.[activeChannelId || activeDmId || ""] || []).length > 0 && (
                                                 <div className="ml-auto flex items-center gap-2 px-3 animate-in fade-in slide-in-from-right-2">

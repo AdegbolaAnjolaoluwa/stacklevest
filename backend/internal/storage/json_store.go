@@ -12,10 +12,11 @@ import (
 )
 
 type DB struct {
-	Users    []domain.User `json:"users"`
-	Channels []interface{} `json:"channels"` // Placeholder to preserve data
-	Messages []interface{} `json:"messages"` // Placeholder
-	Tasks    []interface{} `json:"tasks"`    // Placeholder
+	Users    []domain.User        `json:"users"`
+	Sessions []domain.UserSession `json:"sessions"`
+	Channels []interface{}        `json:"channels"` // Placeholder to preserve data
+	Messages []interface{}        `json:"messages"` // Placeholder
+	Tasks    []interface{}        `json:"tasks"`    // Placeholder
 }
 
 type JSONStore struct {
@@ -184,4 +185,84 @@ func (s *JSONStore) Delete(id string) error {
 		}
 	}
 	return errors.New("user not found")
+}
+
+// Session Management Implementation
+
+func (s *JSONStore) CreateSession(session *domain.UserSession) error {
+	if _, err := s.load(); err != nil {
+		return err
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.cache.Sessions = append(s.cache.Sessions, *session)
+	return s.save()
+}
+
+func (s *JSONStore) FindSessionByToken(token string) (*domain.UserSession, error) {
+	db, err := s.load()
+	if err != nil {
+		return nil, err
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	for _, sess := range db.Sessions {
+		if sess.RefreshToken == token {
+			session := sess
+			return &session, nil
+		}
+	}
+	return nil, nil
+}
+
+func (s *JSONStore) DeleteSession(id string) error {
+	if _, err := s.load(); err != nil {
+		return err
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for i, sess := range s.cache.Sessions {
+		if sess.ID == id {
+			s.cache.Sessions = append(s.cache.Sessions[:i], s.cache.Sessions[i+1:]...)
+			return s.save()
+		}
+	}
+	return nil // Already deleted or not found
+}
+
+func (s *JSONStore) DeleteUserSessions(userID string) error {
+	if _, err := s.load(); err != nil {
+		return err
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	var remainingSessions []domain.UserSession
+	for _, sess := range s.cache.Sessions {
+		if sess.UserID != userID {
+			remainingSessions = append(remainingSessions, sess)
+		}
+	}
+	s.cache.Sessions = remainingSessions
+	return s.save()
+}
+
+func (s *JSONStore) FindAllSessions() ([]domain.UserSession, error) {
+	db, err := s.load()
+	if err != nil {
+		return nil, err
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	// Return a copy
+	sessions := make([]domain.UserSession, len(db.Sessions))
+	copy(sessions, db.Sessions)
+	return sessions, nil
 }

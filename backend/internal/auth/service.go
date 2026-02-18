@@ -8,6 +8,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"github.com/stacklevest/backend/internal/config"
 	"github.com/stacklevest/backend/internal/domain"
+	"github.com/stacklevest/backend/internal/storage"
 )
 
 type AuthService struct {
@@ -23,9 +24,10 @@ func NewAuthService(repo domain.UserRepository, cfg *config.Config) *AuthService
 }
 
 type LoginResponse struct {
-	User        *domain.User `json:"user,omitempty"`
-	Token       string       `json:"token,omitempty"`
-	RequiresOTP bool         `json:"requiresOtp,omitempty"`
+	User         *domain.User `json:"user,omitempty"`
+	AccessToken  string       `json:"accessToken,omitempty"`
+	RefreshToken string       `json:"refreshToken,omitempty"` // For the first login response if needed
+	RequiresOTP  bool         `json:"requiresOtp,omitempty"`
 }
 
 func (s *AuthService) Login(email, password string) (*LoginResponse, error) {
@@ -71,24 +73,115 @@ func (s *AuthService) Login(email, password string) (*LoginResponse, error) {
 		}, nil
 	}
 
-	// 5. Generate Token
-	token, err := s.generateToken(user)
+	// 5. Generate Tokens
+	accessToken, err := s.generateAccessToken(user)
+	if err != nil {
+		return nil, err
+	}
+
+	refreshToken, err := s.createSession(user.ID)
 	if err != nil {
 		return nil, err
 	}
 
 	return &LoginResponse{
-		User:  user,
-		Token: token,
+		User:         user,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
 	}, nil
 }
 
-func (s *AuthService) generateToken(user *domain.User) (string, error) {
+func (s *AuthService) Refresh(refreshToken string) (*LoginResponse, error) {
+	// Find session (In a real DB this would be indexed, here we iterate)
+	// For rotation, we might need the actual token to find it, but it's hashed.
+	// So we find by UserID? No, we don't have it.
+	// We'll have to iterate all sessions and bcrypt compare.
+	
+	sessions, err := s.repo.(*storage.JSONStore).FindAllSessions() // I may need to add this to repo interface or cast
+	if err != nil {
+		return nil, err
+	}
+
+	var foundSession *domain.UserSession
+	for _, sess := range sessions {
+		if err := bcrypt.CompareHashAndPassword([]byte(sess.RefreshToken), []byte(refreshToken)); err == nil {
+			foundSession = &sess
+			break
+		}
+	}
+
+	if foundSession == nil || foundSession.ExpiresAt.Before(time.Now()) {
+		return nil, errors.New("invalid or expired refresh token")
+	}
+
+	// Token is valid. ROTATE.
+	user, err := s.repo.FindByID(foundSession.UserID)
+	if err != nil || user == nil {
+		return nil, errors.New("user not found")
+	}
+
+	// Delete old session
+	s.repo.DeleteSession(foundSession.ID)
+
+	// Create new session
+	newAccessToken, err := s.generateAccessToken(user)
+	if err != nil {
+		return nil, err
+	}
+
+	newRefreshToken, err := s.createSession(user.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &LoginResponse{
+		User:         user,
+		AccessToken:  newAccessToken,
+		RefreshToken: newRefreshToken,
+	}, nil
+}
+
+func (s *AuthService) Logout(refreshToken string) error {
+	// Find and delete session
+	sessions, _ := s.repo.(*storage.JSONStore).FindAllSessions()
+	for _, sess := range sessions {
+		if err := bcrypt.CompareHashAndPassword([]byte(sess.RefreshToken), []byte(refreshToken)); err == nil {
+			return s.repo.DeleteSession(sess.ID)
+		}
+	}
+	return nil
+}
+
+func (s *AuthService) createSession(userID string) (string, error) {
+	// Actually, just using a UUID or a long random string is fine.
+	refreshToken := domain.GenerateRandomString(32) 
+	
+	hashedToken, err := bcrypt.GenerateFromPassword([]byte(refreshToken), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+
+	session := &domain.UserSession{
+		ID:           domain.GenerateID("sess"),
+		UserID:       userID,
+		RefreshToken: string(hashedToken),
+		ExpiresAt:    time.Now().Add(time.Hour * 24 * 7), // 7 days
+		CreatedAt:    time.Now(),
+	}
+
+	if err := s.repo.CreateSession(session); err != nil {
+		return "", err
+	}
+
+	return refreshToken, nil
+}
+
+func (s *AuthService) generateAccessToken(user *domain.User) (string, error) {
 	claims := jwt.MapClaims{
 		"id":    user.ID,
 		"email": user.Email,
 		"role":  user.Role,
-		"exp":   time.Now().Add(time.Hour * 24 * 7).Unix(), // 7 days
+		"exp":   time.Now().Add(time.Minute * 5).Unix(), // 5 minutes as requested
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

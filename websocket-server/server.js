@@ -63,6 +63,40 @@ const saveState = () => {
   });
 };
 
+// Security: Helper to sanitize user objects for response
+const sanitizeUser = (user) => {
+  if (!user) return null;
+  const sanitized = { ...user };
+  delete sanitized.password;
+  return sanitized;
+};
+
+// Security: JWT Authentication Middleware for REST API
+const authenticateJWT = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (authHeader) {
+    const token = authHeader.split(' ')[1];
+    jwt.verify(token, process.env.JWT_SECRET || 'stacklevest-secret-2025', (err, user) => {
+      if (err) {
+        return res.sendStatus(403);
+      }
+      req.user = user;
+      next();
+    });
+  } else {
+    res.sendStatus(401);
+  }
+};
+
+const isAdmin = (req, res, next) => {
+  if (req.user && req.user.role?.toLowerCase() === 'admin') {
+    next();
+  } else {
+    res.status(403).json({ error: "Requires Admin privileges" });
+  }
+};
+
 // --- REST API for Authentication ---
 app.get('/api/users/email/:email', (req, res) => {
   const { email } = req.params;
@@ -70,24 +104,29 @@ app.get('/api/users/email/:email', (req, res) => {
   users = db.users;
   const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
   if (user) {
-    res.json(user);
+    res.json(sanitizeUser(user));
   } else {
     res.status(404).json({ error: "User not found" });
   }
 });
 
 // Admin: Get All Users
-app.get('/api/users', (req, res) => {
+app.get('/api/users', authenticateJWT, isAdmin, (req, res) => {
   // Refresh DB
   db = readDB();
   users = db.users;
-  res.json(users);
+  res.json(users.map(sanitizeUser));
 });
 
 // Update User Profile
-app.patch('/api/users/:id', (req, res) => {
+app.patch('/api/users/:id', authenticateJWT, (req, res) => {
   const { id } = req.params;
   const updates = req.body;
+
+  // Only allow Admin or the user themselves to update
+  if (req.user.id !== id && req.user.role?.toLowerCase() !== 'admin') {
+    return res.status(403).json({ error: "Unauthorized profile update" });
+  }
 
   db = readDB();
   users = db.users;
@@ -104,14 +143,14 @@ app.patch('/api/users/:id', (req, res) => {
   // Notify all clients about user update
   io.emit("refresh", {
     type: 'user_updated',
-    payload: users[userIndex]
+    payload: sanitizeUser(users[userIndex])
   });
 
-  res.json(users[userIndex]);
+  res.json(sanitizeUser(users[userIndex]));
 });
 
 // Admin: Create User & Send Invite
-app.post('/api/users', async (req, res) => {
+app.post('/api/users', authenticateJWT, isAdmin, async (req, res) => {
   const error = validateFields(req.body, ['name', 'email']);
   if (error) {
     return res.status(400).json({ error });
@@ -179,11 +218,11 @@ app.post('/api/users', async (req, res) => {
     // We don't fail the request if email fails, but we log it
   }
 
-  res.json(newUser);
+  res.json(sanitizeUser(newUser));
 });
 
 // Admin: Update User
-app.put('/api/users/:id', (req, res) => {
+app.put('/api/users/:id', authenticateJWT, isAdmin, (req, res) => {
   const { id } = req.params;
   const updates = req.body;
 
@@ -204,14 +243,14 @@ app.put('/api/users/:id', (req, res) => {
     if (status) user.status = status;
 
     saveState();
-    res.json(user);
+    res.json(sanitizeUser(user));
   } else {
     res.status(404).json({ error: "User not found" });
   }
 });
 
 // Admin: Delete User
-app.delete('/api/users/:id', (req, res) => {
+app.delete('/api/users/:id', authenticateJWT, isAdmin, (req, res) => {
   const { id } = req.params;
 
   db = readDB();
@@ -311,7 +350,7 @@ app.post('/api/login', async (req, res) => {
 
     // OTP Valid!
     otpStore.delete(email.toLowerCase()); // Consume OTP
-    return res.json(user);
+    return res.json(sanitizeUser(user));
   }
 
   // SCENARIO 2: Password Verification (Step 1)
@@ -333,7 +372,7 @@ app.post('/api/login', async (req, res) => {
     // Check if user needs onboarding (First login)
     // If NO onboarding needed, return User directly (Skip OTP)
     if (!user.needsOnboarding) {
-      return res.json(user);
+      return res.json(sanitizeUser(user));
     }
 
     // If Onboarding NEEDED -> Generate OTP
@@ -377,11 +416,10 @@ const jwt = require('jsonwebtoken');
 // Middleware for Socket.IO Authentication & Role Assignment
 io.use((socket, next) => {
   const token = socket.handshake.auth.token;
-  const emailAuth = socket.handshake.auth.email;
 
-  console.log(`[Socket] Connection attempt. Token: ${token ? 'Present' : 'Missing'}, Email: ${emailAuth || 'Missing'}`);
+  console.log(`[Socket] Connection attempt. Token: ${token ? 'Present' : 'Missing'}`);
 
-  // 1. JWT Authentication (New Flow)
+  // 1. JWT Authentication (Mandatory)
   if (token) {
     jwt.verify(token, process.env.JWT_SECRET || 'stacklevest-secret-2025', (err, decoded) => {
       if (err) {
@@ -401,29 +439,9 @@ io.use((socket, next) => {
       socket.user = user;
       next();
     });
-    return;
+  } else {
+    return next(new Error("Authentication error: Token required"));
   }
-
-  // 2. Email Authentication (Legacy / Dev Flow)
-  const userEmail = socket.handshake.auth.email;
-
-  if (!userEmail) {
-    return next(new Error("Authentication error: No authentication provided"));
-  }
-
-  // Refresh users from DB to ensure latest data
-  db = readDB();
-  users = db.users;
-
-  const user = users.find(u => u.email.toLowerCase() === userEmail.toLowerCase());
-
-  if (!user) {
-    return next(new Error("Authentication error: User not found"));
-  }
-
-  // Attach user to socket session
-  socket.user = user;
-  next();
 });
 
 io.on("connection", (socket) => {
@@ -433,7 +451,7 @@ io.on("connection", (socket) => {
   const sendState = () => {
     socket.emit("history", messageHistory);
     socket.emit("channels", channels);
-    socket.emit("users", users);
+    socket.emit("users", users.map(sanitizeUser));
     socket.emit("tasks", tasks);
   };
   sendState();
@@ -472,6 +490,7 @@ io.on("connection", (socket) => {
         timestamp: new Date().toISOString(),
         channelId: payload.channelId,
         dmId: payload.dmId,
+        parentId: payload.parentId,
         user: {
           id: socket.user.id,
           name: socket.user.name,
@@ -584,6 +603,11 @@ io.on("connection", (socket) => {
 
   // Delete Channel
   socket.on("delete_channel", (payload) => {
+    // Only allow Admin to delete channels
+    if (socket.user.role?.toLowerCase() !== 'admin') {
+      return console.error("Unauthorized channel deletion attempt");
+    }
+
     const index = channels.findIndex(c => c.id === payload.channelId);
     if (index !== -1) {
       channels.splice(index, 1);
@@ -693,8 +717,13 @@ io.on("connection", (socket) => {
   });
 });
 
-app.post('/api/auth/change-password', (req, res) => {
+app.post('/api/auth/change-password', authenticateJWT, (req, res) => {
   const { email, newPassword } = req.body;
+
+  // Only allow user to change their own password
+  if (req.user.email.toLowerCase() !== email.toLowerCase()) {
+    return res.status(403).json({ error: "Unauthorized password change attempt" });
+  }
 
   db = readDB();
   users = db.users;
@@ -707,7 +736,7 @@ app.post('/api/auth/change-password', (req, res) => {
     saveState();
 
     // Return updated user
-    res.json(users[index]);
+    res.json(sanitizeUser(users[index]));
   } else {
     res.status(404).json({ error: "User not found" });
   }

@@ -45,6 +45,7 @@ func (h *UserHandler) Create(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
+	u.Sanitize()
 	return c.Status(fiber.StatusCreated).JSON(u)
 }
 
@@ -60,6 +61,7 @@ func (h *UserHandler) Update(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
+	u.Sanitize()
 	return c.JSON(u)
 }
 
@@ -81,6 +83,11 @@ func (h *UserHandler) GetAll(c *fiber.Ctx) error {
 	if users == nil {
 		users = []domain.User{}
 	}
+
+	for i := range users {
+		users[i].Sanitize()
+	}
+
 	return c.JSON(users)
 }
 
@@ -93,6 +100,7 @@ func (h *UserHandler) GetByID(c *fiber.Ctx) error {
 	if user == nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
 	}
+	user.Sanitize()
 	return c.JSON(user)
 }
 

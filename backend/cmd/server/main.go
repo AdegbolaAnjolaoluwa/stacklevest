@@ -4,6 +4,8 @@ import (
 	"log"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/helmet"
+	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/stacklevest/backend/internal/auth"
@@ -35,8 +37,12 @@ func main() {
 
 	// Middleware
 	app.Use(logger.New())
+	app.Use(helmet.New())
+	app.Use(limiter.New(limiter.Config{
+		Max: 100, // Limit to 100 requests per minute
+	}))
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: "*", // Adjust for production
+		AllowOrigins: "http://localhost:3000,http://192.168.0.114:3000", // Allow network IP
 		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
 	}))
 

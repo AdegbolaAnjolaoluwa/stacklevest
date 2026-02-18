@@ -47,19 +47,19 @@ export default function WorkspaceLayout({
           <div className="w-9" />
         </div>
         {children}
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 h-14 flex items-center justify-around">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 h-16 flex items-center justify-around px-2 z-40">
           <Button
             variant="ghost"
-            className={`flex flex-col items-center gap-1 h-full px-4 ${activeView === "tasks" ? "text-blue-600" : "text-slate-600"}`}
+            className={`flex-1 flex flex-col items-center justify-center gap-1 h-full rounded-none ${activeView === "tasks" ? "text-blue-600 bg-blue-50/50" : "text-slate-600"}`}
             onClick={() => setActiveView("tasks")}
             aria-label="Tasks"
           >
             <CheckSquare className="w-5 h-5" />
-            <span className="text-[11px] font-medium">Tasks</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider">Tasks</span>
           </Button>
           <Button
             variant="ghost"
-            className={`flex flex-col items-center gap-1 h-full px-4 ${activeView === "channel" ? "text-blue-600" : "text-slate-600"}`}
+            className={`flex-1 flex flex-col items-center justify-center gap-1 h-full rounded-none ${activeView === "channel" ? "text-blue-600 bg-blue-50/50" : "text-slate-600"}`}
             onClick={() => {
               if (!activeChannelId && channels[0]?.id) setActiveChannel(channels[0].id);
               setActiveView("channel");
@@ -67,11 +67,11 @@ export default function WorkspaceLayout({
             aria-label="Channels"
           >
             <Hash className="w-5 h-5" />
-            <span className="text-[11px] font-medium">Channels</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider">Channels</span>
           </Button>
           <Button
             variant="ghost"
-            className={`flex flex-col items-center gap-1 h-full px-4 ${activeView === "dm" ? "text-blue-600" : "text-slate-600"}`}
+            className={`flex-1 flex flex-col items-center justify-center gap-1 h-full rounded-none ${activeView === "dm" ? "text-blue-600 bg-blue-50/50" : "text-slate-600"}`}
             onClick={() => {
               if (!activeDmId && dms[0]?.id) setActiveDm(dms[0].id);
               setActiveView("dm");
@@ -79,15 +79,15 @@ export default function WorkspaceLayout({
             aria-label="DMs"
           >
             <User className="w-5 h-5" />
-            <span className="text-[11px] font-medium">DMs</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider">DMs</span>
           </Button>
         </div>
       </div>
       <NotificationCenter />
 
       <Dialog open={mobileSidebarOpen} onOpenChange={setMobileSidebarOpen}>
-        <DialogContent className="p-0 bg-white border-none shadow-2xl fixed left-0 top-0 h-screen w-[85vw] max-w-[320px] rounded-none">
-          <Sidebar />
+        <DialogContent className="p-0 bg-white border-none shadow-2xl fixed left-0 top-0 h-screen w-[280px] rounded-none translate-x-0 translate-y-0 duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left">
+          <Sidebar onClose={() => setMobileSidebarOpen(false)} />
         </DialogContent>
       </Dialog>
     </div>

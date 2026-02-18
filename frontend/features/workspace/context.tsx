@@ -11,7 +11,7 @@ interface WorkspaceContextType extends WorkspaceState {
   setActiveDm: (dmId: string) => void;
   setSelectedTaskId: (taskId: string | undefined) => void;
   setHighlightedMessageId: (messageId: string | undefined) => void;
-  sendMessage: (content: string, attachments?: Attachment[]) => void;
+  sendMessage: (content: string, attachments?: Attachment[], parentId?: string) => void;
   createChannel: (name: string, description?: string, type?: "public" | "private") => void;
   markChannelRead: (channelId: string) => void;
   updateTaskStatus: (taskId: string, newStatus: "todo" | "in_progress" | "done") => void;
@@ -54,8 +54,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (session?.user?.email) {
-      const token = (session.user as any).accessToken;
-      socket.connect({ email: session.user.email, token });
+      const token = (session as any).accessToken || (session.user as any).accessToken;
+      if (token) {
+        socket.connect({ email: session.user.email, token });
+      } else {
+        console.warn("WorkspaceProvider: No accessToken found in session");
+      }
 
       // Use session data to set currentUser temporarily until full user list sync
       if (session.user) {
@@ -441,7 +445,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     }));
   };
 
-  const sendMessage = (content: string, attachments: Attachment[] = []) => {
+  const sendMessage = (content: string, attachments: Attachment[] = [], parentId?: string) => {
     const dmId = state.activeView === "dm" ? state.activeDmId : undefined;
     const channelId = state.activeView === "channel" ? state.activeChannelId : undefined;
 
@@ -453,6 +457,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       attachments,
       channelId,
       dmId,
+      parentId,
     };
 
     socket.send({ type: 'message', payload: newMessage });
@@ -570,7 +575,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     if (!state.currentUser.id) return;
 
     try {
-      const response = await fetch(`http://localhost:8082/api/users/${state.currentUser.id}`, {
+      const baseUrl = typeof window !== 'undefined' ? `http://${window.location.hostname}:8080` : 'http://localhost:8080';
+      const response = await fetch(`${baseUrl}/api/users/${state.currentUser.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates)
